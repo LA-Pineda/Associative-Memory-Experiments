@@ -8,21 +8,30 @@ This program was written in Python 3 and was run on a personal computer with the
 * RAM: 16GB
 
 ### Requeriments
-Before using it, you must install the following libraries:
+The following libraries need to be installed beforehand:
 * joblib
 * matplotlib
 * numpy
 * theano
 
-
 ### Data
-The data that was used for this test was obtained from http://yann.lecun.com/exdb/mnist/ you can run the download_mnist.sh scrip to obtain it, however, it is provided by this repository.
+The data that was used for this test was obtained from http://yann.lecun.com/exdb/mnist/ 
+
+This data is downloaded by the script "download_mnist.sh".
+
+All files are provided with the exception of
+
+/mnist/train-images-idx3-ubyte.gz
+
+due to its size.
+
+However, this file is downloades directly by the script.
 
 ### Use
+
 To use just run the following command in the source directory
 
     python3 main_test_associative.py
-
 
 
 
