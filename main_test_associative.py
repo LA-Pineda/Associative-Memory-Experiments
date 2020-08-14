@@ -1,3 +1,6 @@
+import sys
+import argparse
+
 import theano
 import numpy as np
 import matplotlib.pyplot as plt
@@ -9,15 +12,55 @@ from mnist import load_mnist
 from convnet import init_weights, RMSprop, convnet_model
 from associative import AssociativeMemory, AssociativeMemoryError
 
-#%matplotlib inline
 
 mnist_path = './mnist'
+run_path = './runs'
+N_RUNS = 10
 
-#################################################################
+TRAIN_NN = -1
+GET_FEATURES = 0
+FIRST_EXP = 1
+SECOND_EXP = 2
 
 average_entropy = []
 average_precision = []
 average_recall = []
+
+
+def print_error(*s):
+    print('Error:', *s, file = sys.stderr)
+
+
+def file_name_by_extension(s, e, i = None):
+    """ Returns a file name in run_path directory with a given extension
+    """
+
+    if i is None:
+        return run_path + '/' + s + e
+    else:
+        return run_path + '/' + s + '-' + str(i) + e
+
+
+def data_file_name(s, i = None):
+    """ Returns a file name for data(i) in run_path directory
+    """
+
+    return file_name_by_extesion(s, '.npy', i)
+
+
+def picture_file_name(s, i = None):
+    """ Returns a file name for picture(i) in run_path directory
+    """
+
+    return file_name_by_extesion(s, '.png', i)
+
+
+def csv_file_name(s, i = None):
+    """ Returns a file name for csv(i) in run_path directory
+    """
+
+    return file_name_by_extesion(s, '.csv', i)
+
 
 def get_ams_results1(i, s, domain, train_X, test_X, trY, teY):
         table = np.zeros((10, 5), dtype=np.float64)
@@ -103,289 +146,342 @@ def get_ams_results2(i, s, domain, train_X, test_X, trY, teY):
         return (i, table, entropy)
     
 
+def get_data_and_labels(i, runs, data, labels):
+    """ Get a segment of data for testing, and the remaining for training.
+    """
 
-while True:
-    sel=int(input('Choose the number of experiment (1, 2): '))
-    if sel==1 or sel==2:
-        break
+    data_size = len(data)
 
-X=T.ftensor4()
-Y=T.fmatrix()
+    # Gets the ite-th 1/runs part of the full data and labels.
+    teX = data[int(i/runs*data_size):int((i+1)/runs*data_size)]
+    trX=np.concatenate((data[int(0*data_size):int(i/runs*data_size)], data[int((i+1)/runs*data_size):int(1*data_size)]), axis=0)
 
-
-for ite in range(10):
-    
-    # Load data
-    trX, teX, trY, teY = load_mnist(mnist_path)
-    tX=np.concatenate((trX, teX), axis=0)
-    tY=np.concatenate((trY, teY), axis=0)
-    tSize=len(tX)
-    
-    teX=tX[int(ite/10*tSize):int((ite+1)/10*tSize)]
-    trX=np.concatenate((tX[int(0*tSize):int(ite/10*tSize)],tX[int((ite+1)/10*tSize):int(1*tSize)]), axis=0)
-
-    teY=tY[int(ite/10*tSize):int((ite+1)/10*tSize)]
-    trY=np.concatenate((tY[int(0*tSize):int(ite/10*tSize)],tY[int((ite+1)/10*tSize):int(1*tSize)]), axis=0)
-
-    print("Length Train {0}".format(len(trX)))
-    print("Length Test {0}".format(len(teX)))
-
+    # Gets the complementary part of labels.
+    teY=labels[int(i/runs*data_size):int((i+1)/runs*data_size)]
+    trY=np.concatenate((labels[int(0*data_size):int(i/runs*data_size)],labels[int((i+1)/runs*data_size):int(1*data_size)]), axis=0)
 
     trX = trX.reshape(-1, 1, 28, 28)
     teX = teX.reshape(-1, 1, 28, 28)
 
-    
-    
-    ################################################################
-
-    # Setup of the training and testing.
-    # Do not run this cell if you already have the weights of the network. 
-
-    w1 = init_weights((32, 1, 3, 3))
-    w2 = init_weights((64, 32, 3, 3))
-    w3 = init_weights((128, 64, 3, 3))
-    w4 = init_weights((128 * 3 * 3, 625))
-    w5 = init_weights((625, 10))
-
-    # model with dropout ('n'oisy outputs)
-    n_l1, n_l2, n_l3, n_l4, n_py_x = convnet_model(X, w1, w2, w3, w4, w5, 0.2, 0.5)
-
-    # cost function
-    cost = T.mean(T.nnet.categorical_crossentropy(n_py_x, Y))
-    params = [w1, w2, w3, w4, w5]
-    updates = RMSprop(cost, params, lr=0.001)
-
-    # Train function
-    train = theano.function(inputs=[X, Y], outputs=cost, updates=updates, allow_input_downcast=True)
+    return trX, teX, trY, teY
 
 
-    # model without dropout
-    l1, l2, l3, l4, py_x = convnet_model(X, w1, w2, w3, w4, w5, 0., 0.)
-    y_x = T.argmax(py_x, axis=1)
-    predict = theano.function(inputs=[X], outputs=y_x, allow_input_downcast=True)
-    
-       # Train the network
-    for i in range(100):
-        for start, end in zip(range(0, len(trX), 128), range(128, len(trX), 128)):
-            cost = train(trX[start:end], trY[start:end])
-        print('Testing epoch number: ',i,' -----',ite)
-        #print(np.mean(np.argmax(teY, axis=1) == predict(teX)))
+def train_nnetwork(data, labels):
+    """ Trains the neural network and saves the weights obtained.
+    """
 
-    # Save the weights of the network
+    X=T.ftensor4()
+    Y=T.fmatrix()
 
+    for i in range(N_RUNS):
+        
+        trX, teX, trY, teY = get_data_and_labels(i, N_RUNS, data, labels)
 
-    np.save('w1.npy', w1.get_value())
-    np.save('w2.npy', w2.get_value())
-    np.save('w3.npy', w3.get_value())
-    np.save('w4.npy', w4.get_value())
-    np.save('w5.npy', w5.get_value())
-    
-    #del train
-    #del cost
+        w1 = init_weights((32, 1, 3, 3))
+        w2 = init_weights((64, 32, 3, 3))
+        w3 = init_weights((128, 64, 3, 3))
+        w4 = init_weights((128 * 3 * 3, 625))
+        w5 = init_weights((625, 10))
 
+        # Model with dropout ('n'oisy outputs), for training
+        n_l1, n_l2, n_l3, n_l4, n_py_x = convnet_model(X, w1, w2, w3, w4, w5, 0.2, 0.5)
 
-    ##################################################################################
+        # cost function
+        cost = T.mean(T.nnet.categorical_crossentropy(n_py_x, Y))
+        params = [w1, w2, w3, w4, w5]
+        updates = RMSprop(cost, params, lr=0.001)
 
-    # Load the network's parameters to generate the features
-    # Do not run this cell if you already generated the features. Skip to the next cell
-
-    # Shared variables
-    w1 = theano.shared(np.load('w1.npy'), name='w1')
-    w2 = theano.shared(np.load('w2.npy'), name='w2')
-    w3 = theano.shared(np.load('w3.npy'), name='w3')
-    w4 = theano.shared(np.load('w4.npy'), name='w4')
-    w5 = theano.shared(np.load('w5.npy'), name='w5')
-
-    # model
-    l1, l2, l3, l4, py_x = convnet_model(X, w1, w2, w3, w4, w5, 0., 0.)
-
-    generate = theano.function(inputs=[X], outputs=l4, allow_input_downcast=True)
-
-    # Generate features from the network 128*3*3->625
-
-    train_features = np.zeros((len(trX), (625)), theano.config.floatX)
-
-    for start, end in zip(range(0, len(trX), 200), range(200, (len(trX) + 1), 200)):
-        batch = generate(trX[start:end])
-        train_features[start:end] = batch
-    
-    np.save('train_features_l4.npy', train_features)
-
-    test_features = np.zeros((len(teX), (625)), theano.config.floatX)
-
-    for start, end in zip(range(0, len(teX), 200), range(200, (len(teX) + 1), 200)):
-        batch = generate(teX[start:end])
-        test_features[start:end] = batch
-    
-    np.save('test_features_l4.npy', test_features)
+        # Train function
+        train = theano.function(inputs=[X, Y], outputs=cost, updates=updates, allow_input_downcast=True)
 
 
-    # Load the features
+        # Model without dropout, for testing
+        # l1, l2, l3, l4, py_x = convnet_model(X, w1, w2, w3, w4, w5, 0., 0.)
+        # y_x = T.argmax(py_x, axis=1)
+        # predict = theano.function(inputs=[X], outputs=y_x, allow_input_downcast=True)
+        
+        # Train the network
+        for j in range(100):
+            for start, end in zip(range(0, len(trX), 128), range(128, len(trX), 128)):
+                cost = train(trX[start:end], trY[start:end])
+            print('Testing epoch number: ',j,' -----',i)
+            #print(np.mean(np.argmax(teY, axis=1) == predict(teX)))
 
-    train_X = np.load('train_features_l4.npy')
-    test_X = np.load('test_features_l4.npy')
-    trX, teX, trY, teY = load_mnist(mnist_path, onehot=False)
-    tX=np.concatenate((trX, teX), axis=0)
-    tY=np.concatenate((trY, teY), axis=0)
-    tSize=len(tX)
-    teX=tX[int(ite/10*tSize):int((ite+1)/10*tSize)]
-    trX=np.concatenate((tX[int(0*tSize):int(ite/10*tSize)],tX[int((ite+1)/10*tSize):int(1*tSize)]), axis=0)
-    teY=tY[int(ite/10*tSize):int((ite+1)/10*tSize)]
-    trY=np.concatenate((tY[int(0*tSize):int(ite/10*tSize)],tY[int((ite+1)/10*tSize):int(1*tSize)]), axis=0)
-    # The ranges of all the memories that will be trained
-    sizes = (1, 2, 4, 8, 16, 32, 64, 128, 256, 512)
-    # the domain size. The size of the output layer of the network
-    domain = 625
-    # Maximum value of the features in the train set
-    max_val = train_X.max()
+        # Save the weights of the network
+        np.save(data_file_name('w1',i), w1.get_value())
+        np.save(data_file_name('w2',i), w2.get_value())
+        np.save(data_file_name('w3',i), w3.get_value())
+        np.save(data_file_name('w4',i), w4.get_value())
+        np.save(data_file_name('w5',i), w5.get_value())
 
 
-    # Train the different co-domain memories
+def obtain_features(data, label):
+    """ Load the a network's parameters and then generates the training and testing
+        data features.
+    """
+    X=T.ftensor4()
+    Y=T.fmatrix()
 
-    tables = np.zeros((len(sizes), 10, 5), dtype=np.float64)
-    entropies = np.zeros((len(sizes), int(10/sel)), dtype=np.float64)
+    for i in range(N_RUNS):
+
+        trX, teX, trY, teY = get_data_and_labels(i, N_RUNS, data, labels)
+
+        # Get the weights for the neural network.
+        w1 = theano.shared(np.load(data_file_name('w1',i)), name='w1')
+        w2 = theano.shared(np.load(data_file_name('w2',i)), name='w2')
+        w3 = theano.shared(np.load(data_file_name('w3',i)), name='w3')
+        w4 = theano.shared(np.load(data_file_name('w4',i)), name='w4')
+        w5 = theano.shared(np.load(data_file_name('w5',i)), name='w5')
+
+        # Prediction model for generating features.
+        l1, l2, l3, l4, py_x = convnet_model(X, w1, w2, w3, w4, w5, 0., 0.)
+
+        generate = theano.function(inputs=[X], outputs=l4, allow_input_downcast=True)
+
+        # Generate features from the network 128*3*3->625
+
+        train_features = np.zeros((len(trX), (625)), theano.config.floatX)
+
+        for start, end in zip(range(0, len(trX), 200), range(200, (len(trX) + 1), 200)):
+            batch = generate(trX[start:end])
+            train_features[start:end] = batch
+        
+        np.save(data_file_name('train_features_l4'), train_features)
+
+        test_features = np.zeros((len(teX), (625)), theano.config.floatX)
+
+        for start, end in zip(range(0, len(teX), 200), range(200, (len(teX) + 1), 200)):
+            batch = generate(teX[start:end])
+            test_features[start:end] = batch
+        
+        np.save(data_file_name('test_features_l4'), test_features)
+
+
+def test_memories(data, labels, experiment):
+
+    for i in range(N_RUNS):
+        # Load the features.
+        training_features = np.load(data_file_name('train_features_l4'))
+        testing_features = np.load(data_file_name('test_features_l4.npy'))
+
+        trX, teX, trY, teY = get_data_and_labels(i, N_RUNS, data, labels)
+        
+        # The ranges of all the memories that will be trained.
+        memory_sizes = (1, 2, 4, 8, 16, 32, 64, 128, 256, 512)
+
+        # The domain size, equal to the size of the output layer of the network.
+        domain = 625
+
+        # Maximum value of the features in the train set
+        max_val = training_features.max()
+
+        # Train the different co-domain memories
+
+        # For each memory size, and each digit, it stores:
+        # 0.- Total count
+        # 1.- Able to reduce and it is the same digit
+        # 2.- Able to reduce and it is not the same digit 
+        # 3.- Not able to reduce and it is not the same digit
+        # 4.- Not able to reduce and it is the same digit
+        tables = np.zeros((len(memory_sizes), 10, 5), dtype=np.float64)
+        entropies = np.zeros((len(memory_sizes), int(10/experiment)), dtype=np.float64)
+
+        print('Train the different co-domain memories -- NinM: ',experiment,' -----',i)
+        if sel == 1:
+            list_tables_entropies = Parallel(n_jobs=8, verbose=50)(
+                delayed(get_ams_results1)(j, s, domain, training_features, testing_features, trY, teY) for j, s in enumerate(memory_sizes))
+        elif sel == 2:
+            list_tables_entropies = Parallel(n_jobs=8, verbose=50)(
+                delayed(get_ams_results2)(j, s, domain, training_features, testing_features, trY, teY) for j, s in enumerate(memory_sizes))
+
+        for j, table, entropy in list_tables_entropies:
+            tables[j, :, :] = table
+            entropies[j, :] = entropy
+
+
+        ##########################################################################################
+
+        # Calculate precision and recall
+
+        print('Calculate precision and recall')
+        precision = np.zeros((len(memory_sizes), 11, 1), dtype=np.float64)
+        recall = np.zeros((len(memory_sizes), 11, 1), dtype=np.float64)
+
+        for j, s in enumerate(memory_sizes):
+            # Proportion of correct reductions among all reductions.
+            prec_aux = tables[j, :, 1] / (tables[j, :, 1] + tables[j, :, 2])
+
+            # Proportion of correct reductions among all cases.
+            recall_aux = tables[j, :, 1] / tables[j, :, 0]
+
+
+            precision[j, 0:10, 0] = prec_aux[:]
+            precision[j, 10, 0] = prec_aux.mean()
+            recall[j, 0:10, 0] = recall_aux[:]
+            recall[j, 10, 0] = recall_aux.mean()
+        
+
+        ###################################################################3##
+        # Measures by memory size
+
+        # Average entropy among al digits.
+        average_entropy.append( entropies.mean(axis=1) )
+
+        # Average precision as percentage
+        average_precision.append( precision[:, 10, :] * 100 )
+
+        # Average recall as percentage
+        average_recall.append( recall[:, 10, :] * 100 )
+        
+        np.save(data_file_name('average_precision'), average_precision)
+        np.save(data_file_name('average_recall'), average_recall)
+        np.save(data_file_name('average_entropy'), average_entropy)
+        
+        print('avg precision: ',average_precision[i])
+        print('avg recall: ',average_recall[i])
+        print('avg entropy: ',average_entropy[i])
+
+
+        # Plot of precision and recall with entropies
+
+        print('Plot of precision and recall with entropies-----{0}'.format(i))
+
+        # Setting up a colormap that's a simple transition
+        cmap = mpl.colors.LinearSegmentedColormap.from_list('mycolors',['cyan','purple'])
+
+        # Using contourf to provide my colorbar info, then clearing the figure
+        Z = [[0,0],[0,0]]
+        step = 0.1
+        levels = np.arange(0.0, 90 + step, step)
+        CS3 = plt.contourf(Z, levels, cmap=cmap)
+
+        plt.clf()
+
+
+        plt.plot(np.arange(0, 100, 10), average_precision[i], 'r-o', label='Precision')
+        plt.plot(np.arange(0, 100, 10), average_recall[i], 'b-s', label='Recall')
+        plt.xlim(-0.1, 91)
+        plt.ylim(0, 102)
+        plt.xticks(np.arange(0, 100, 10), memory_sizes)
+
+        plt.xlabel('Range Quantization Levels')
+        plt.ylabel('Percentage [%]')
+        plt.legend(loc=4)
+        plt.grid(True)
+
+        entropy_labels = [str(e) for e in np.around(average_entropy[i], decimals=1)]
+
+        cbar = plt.colorbar(CS3, orientation='horizontal')
+        cbar.set_ticks(np.arange(0, 100, 10))
+        cbar.ax.set_xticklabels(entropy_labels)
+        cbar.set_label('Entropy')
+
+        plt.savefig(picture_file_name('graph_l4_{0}_{1}'.format(experiment,i)), dpi=500)
+        print('Iteration {0} complete'.format(i))
+        #Uncomment the following line for plot at runtime
+        #plt.show()
+
+
+
+def main(action):
+    # Load data: trX: training data, teX: testing data;
+    #            trY: training labels, teY: testing labels.
+
+    flag = (action == TRAIN_NN) or (action == GET_FEATURES)
+
+    mnist_tr_data, mnist_te_data, mnist_tr_labels, mnist_te_labels = load_mnist(mnist_path, onehot=flag)
+    data = np.concatenate((mnist_tr_data, mnist_te_data), axis=0)
+    labels = np.concatenate((mnist_tr_labels, mnist_te_labels), axis=0)
+
+    if action == TRAIN_NN:
+        # Trains a neural network with those sections of data
+        train_nnetwork(data, labels)
+    elif action == GET_FEATURES:
+        # Generates features for the data sections using the previously generate neural network
+        obtain_features(data, labels)
+    else:
+        test_memories(data, labels, action)
+
+        ##########################################################################
+        # Plot the final graph
+
+        average_precision=np.array(average_precision)
+        main_average_precision=[]
+
+        average_recall=np.array(average_recall)
+        main_average_recall=[]
+
+        average_entropy=np.array(average_entropy)
+        main_average_entropy=[]
+
+        for i in range(10):
+            main_average_precision.append( average_precision[:,i].mean() )
+            main_average_recall.append( average_recall[:,i].mean() )
+            main_average_entropy.append( average_entropy[:,i].mean() )
+            
+        print('main avg precision: ',main_average_precision)
+        print('main avg recall: ',main_average_recall)
+        print('main avg entropy: ',main_average_entropy)
+
+        np.savetxt(csv_file_name('main_average_precision--{0}'.format(action)), main_average_precision, delimiter=',')
+        np.savetxt(csv_file_name('main_average_recall--{0}'.format(action)), main_average_recall, delimiter=',')
+        np.savetxt(csv_file_name('main_average_entropy--{0}'.format(action)), main_average_entropy, delimiter=',')
+
+        cmap = mpl.colors.LinearSegmentedColormap.from_list('mycolors',['cyan','purple'])
+        Z = [[0,0],[0,0]]
+        step = 0.1
+        levels = np.arange(0.0, 90 + step, step)
+        CS3 = plt.contourf(Z, levels, cmap=cmap)
+
+        plt.clf()
+
+        plt.plot(np.arange(0, 100, 10), main_average_precision, 'r-o', label='Precision')
+        plt.plot(np.arange(0, 100, 10), main_average_recall, 'b-s', label='Recall')
+        plt.xlim(-0.1, 91)
+        plt.ylim(0, 102)
+        plt.xticks(np.arange(0, 100, 10), memory_sizes)
+
+        plt.xlabel('Range Quantization Levels')
+        plt.ylabel('Percentage [%]')
+        plt.legend(loc=4)
+        plt.grid(True)
+
+        entropy_labels = [str(e) for e in np.around(main_average_entropy, decimals=1)]
+
+        cbar = plt.colorbar(CS3, orientation='horizontal')
+        cbar.set_ticks(np.arange(0, 100, 10))
+        cbar.ax.set_xticklabels(entropy_labels)
+        cbar.set_label('Entropy')
+
+        plt.savefig(picture_file_name('graph_l4_MEAN-{0}'.format(action)), dpi=500)
+        print('Test complete')
+
+
+
+if __name__== "__main__" :
+
+    parser = argparse.ArgumentParser(description='Associative Memory Experimenter.')
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('-n', action='store_const', const=TRAIN_NN, dest='action',
+                        help='train the neural network')
+    group.add_argument('-f', action='store_const', const=GET_FEATURES, dest='action',
+                        help='get data features using the neural network')
+    group.add_argument('-e', dest='n', type=int, default=argparse.SUPPRESS,
+                        help='run the experiment with that number')
+
+    args = parser.parse_args()
+    action = args.action
 
   
-    print('Train the different co-domain memories -- NinM: ',sel,' -----',ite)
-    if sel == 1:
-        list_tables_entropies = Parallel(n_jobs=8, verbose=50)(
-            delayed(get_ams_results1)(i, s, domain, train_X, test_X, trY, teY) for i, s in enumerate(sizes))
-    elif sel == 2:
-        list_tables_entropies = Parallel(n_jobs=8, verbose=50)(
-            delayed(get_ams_results2)(i, s, domain, train_X, test_X, trY, teY) for i, s in enumerate(sizes))
-
-    for i, table, entropy in list_tables_entropies:
-        tables[i, :, :] = table
-        entropies[i, :] = entropy
-
-    # Table columns
-    # 0.- Total count
-    # 1.- Able to reduce and it is the same number
-    # 2.- Able to reduce and it is not the same number
-    # 3.- Not able to reduce and it is not the same number
-    # 4.- Not able to reduce and it is the same number
-
-    ##########################################################################################
-
-    # Calculate the precision and recall
-
-    print('Calculate the precision and recall')
-    precision = np.zeros((len(sizes), 11, 1), dtype=np.float64)
-    recall = np.zeros((len(sizes), 11, 1), dtype=np.float64)
-
-    for i, s in enumerate(sizes):
-        prec_aux = tables[i, :, 1] / (tables[i, :, 1] + tables[i, :, 2])
-        recall_aux = tables[i, :, 1] / tables[i, :, 0]
-        precision[i, 0:10, 0] = prec_aux[:]
-        precision[i, 10, 0] = prec_aux.mean()
-        recall[i, 0:10, 0] = recall_aux[:]
-        recall[i, 10, 0] = recall_aux.mean()
+    if (action == None):
+        # An experiment was chosen
+        if (n < FIRST_EXP) or (n > SECOND_EXP):
+            print_error("There are only three experiments available, numbered 1, 2, and 3.")
+            exit(1)
+        else:
+            action = args.n
     
+    main(action)
 
-    ######################################################################################
-
-    # Plot of precision and recall with entropies
-
-    print('Plot of precision and recall with entropies-----{0}'.format(ite))
-    average_entropy.append( entropies.mean(axis=1) )
-    # Percentage
-    average_precision.append( precision[:, 10, :] * 100 )
-    average_recall.append( recall[:, 10, :] * 100 )
     
-    np.save('average_precision.npy', average_precision)
-    np.save('average_recall.npy', average_recall)
-    np.save('average_entropy.npy', average_entropy)
-    
-    print('avg precision: ',average_precision[ite])
-    print('avg recall: ',average_recall[ite])
-    print('avg entropy: ',average_entropy[ite])
-
-    # Setting up a colormap that's a simple transtion
-    cmap = mpl.colors.LinearSegmentedColormap.from_list('mycolors',['cyan','purple'])
-
-    # Using contourf to provide my colorbar info, then clearing the figure
-    Z = [[0,0],[0,0]]
-    step = 0.1
-    levels = np.arange(0.0, 90 + step, step)
-    CS3 = plt.contourf(Z, levels, cmap=cmap)
-
-    plt.clf()
-
-
-    plt.plot(np.arange(0, 100, 10), average_precision[ite], 'r-o', label='Precision')
-    plt.plot(np.arange(0, 100, 10), average_recall[ite], 'b-s', label='Recall')
-    plt.xlim(-0.1, 91)
-    plt.ylim(0, 102)
-    plt.xticks(np.arange(0, 100, 10), sizes)
-
-    plt.xlabel('Range Quantization Levels')
-    plt.ylabel('Percentage [%]')
-    plt.legend(loc=4)
-    plt.grid(True)
-
-    entropy_labels = [str(e) for e in np.around(average_entropy[ite], decimals=1)]
-
-    cbar = plt.colorbar(CS3, orientation='horizontal')
-    cbar.set_ticks(np.arange(0, 100, 10))
-    cbar.ax.set_xticklabels(entropy_labels)
-    cbar.set_label('Entropy')
-
-    plt.savefig('graph_l4_{0}_{1}.png'.format(sel,ite), dpi=500)
-    print('Iteration {0} complete'.format(ite))
-    #Uncomment the following line for plot at runtime
-    #plt.show()
-    
-# Plot the final graph
-average_precision=np.array(average_precision)
-main_average_precision=[]
-
-average_recall=np.array(average_recall)
-main_average_recall=[]
-
-average_entropy=np.array(average_entropy)
-main_average_entropy=[]
-
-
-
-for i in range(10):
-    main_average_precision.append( average_precision[:,i].mean() )
-    main_average_recall.append( average_recall[:,i].mean() )
-    main_average_entropy.append( average_entropy[:,i].mean() )
-    
-print('main avg precision: ',main_average_precision)
-print('main avg recall: ',main_average_recall)
-print('main avg entropy: ',main_average_entropy)
-
-np.savetxt('main_average_precision--{0}.csv'.format(sel), main_average_precision, delimiter=',')
-np.savetxt('main_average_recall--{0}.csv'.format(sel), main_average_recall, delimiter=',')
-np.savetxt('main_average_entropy--{0}.csv'.format(sel), main_average_entropy, delimiter=',')
-
-cmap = mpl.colors.LinearSegmentedColormap.from_list('mycolors',['cyan','purple'])
-Z = [[0,0],[0,0]]
-step = 0.1
-levels = np.arange(0.0, 90 + step, step)
-CS3 = plt.contourf(Z, levels, cmap=cmap)
-
-plt.clf()
-
-plt.plot(np.arange(0, 100, 10), main_average_precision, 'r-o', label='Precision')
-plt.plot(np.arange(0, 100, 10), main_average_recall, 'b-s', label='Recall')
-plt.xlim(-0.1, 91)
-plt.ylim(0, 102)
-plt.xticks(np.arange(0, 100, 10), sizes)
-
-plt.xlabel('Range Quantization Levels')
-plt.ylabel('Percentage [%]')
-plt.legend(loc=4)
-plt.grid(True)
-
-entropy_labels = [str(e) for e in np.around(main_average_entropy, decimals=1)]
-
-cbar = plt.colorbar(CS3, orientation='horizontal')
-cbar.set_ticks(np.arange(0, 100, 10))
-cbar.ax.set_xticklabels(entropy_labels)
-cbar.set_label('Entropy')
-
-plt.savefig('graph_l4_MEAN-{0}.png'.format(sel), dpi=500)
-print('Test complete')
 
