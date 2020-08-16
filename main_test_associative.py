@@ -1,26 +1,16 @@
 import sys
 import argparse
 
-import theano
 import numpy as np
 import matplotlib.pyplot as plt
-from theano import tensor as T
 from joblib import Parallel, delayed
 from matplotlib import cm
 import matplotlib as mpl
-from mnist import load_mnist
-from convnet import init_weights, RMSprop, convnet_model
+
+import constants
+import convnet
 from associative import AssociativeMemory, AssociativeMemoryError
 
-
-mnist_path = './mnist'
-run_path = './runs'
-N_RUNS = 10
-
-TRAIN_NN = -1
-GET_FEATURES = 0
-FIRST_EXP = 1
-SECOND_EXP = 2
 
 average_entropy = []
 average_precision = []
@@ -145,117 +135,6 @@ def get_ams_results2(i, s, domain, train_X, test_X, trY, teY):
                         table[y, 4] += 1
         return (i, table, entropy)
     
-
-def get_data_and_labels(i, runs, data, labels):
-    """ Get a segment of data for testing, and the remaining for training.
-    """
-
-    data_size = len(data)
-
-    # Gets the ite-th 1/runs part of the full data and labels.
-    teX = data[int(i/runs*data_size):int((i+1)/runs*data_size)]
-    trX=np.concatenate((data[int(0*data_size):int(i/runs*data_size)], data[int((i+1)/runs*data_size):int(1*data_size)]), axis=0)
-
-    # Gets the complementary part of labels.
-    teY=labels[int(i/runs*data_size):int((i+1)/runs*data_size)]
-    trY=np.concatenate((labels[int(0*data_size):int(i/runs*data_size)],labels[int((i+1)/runs*data_size):int(1*data_size)]), axis=0)
-
-    trX = trX.reshape(-1, 1, 28, 28)
-    teX = teX.reshape(-1, 1, 28, 28)
-
-    return trX, teX, trY, teY
-
-
-def train_nnetwork(data, labels):
-    """ Trains the neural network and saves the weights obtained.
-    """
-
-    X=T.ftensor4()
-    Y=T.fmatrix()
-
-    for i in range(N_RUNS):
-        
-        trX, teX, trY, teY = get_data_and_labels(i, N_RUNS, data, labels)
-
-        w1 = init_weights((32, 1, 3, 3))
-        w2 = init_weights((64, 32, 3, 3))
-        w3 = init_weights((128, 64, 3, 3))
-        w4 = init_weights((128 * 3 * 3, 625))
-        w5 = init_weights((625, 10))
-
-        # Model with dropout ('n'oisy outputs), for training
-        n_l1, n_l2, n_l3, n_l4, n_py_x = convnet_model(X, w1, w2, w3, w4, w5, 0.2, 0.5)
-
-        # cost function
-        cost = T.mean(T.nnet.categorical_crossentropy(n_py_x, Y))
-        params = [w1, w2, w3, w4, w5]
-        updates = RMSprop(cost, params, lr=0.001)
-
-        # Train function
-        train = theano.function(inputs=[X, Y], outputs=cost, updates=updates, allow_input_downcast=True)
-
-
-        # Model without dropout, for testing
-        # l1, l2, l3, l4, py_x = convnet_model(X, w1, w2, w3, w4, w5, 0., 0.)
-        # y_x = T.argmax(py_x, axis=1)
-        # predict = theano.function(inputs=[X], outputs=y_x, allow_input_downcast=True)
-        
-        # Train the network
-        for j in range(100):
-            for start, end in zip(range(0, len(trX), 128), range(128, len(trX), 128)):
-                cost = train(trX[start:end], trY[start:end])
-            print('Testing epoch number: ',j,' -----',i)
-            #print(np.mean(np.argmax(teY, axis=1) == predict(teX)))
-
-        # Save the weights of the network
-        np.save(data_file_name('w1',i), w1.get_value())
-        np.save(data_file_name('w2',i), w2.get_value())
-        np.save(data_file_name('w3',i), w3.get_value())
-        np.save(data_file_name('w4',i), w4.get_value())
-        np.save(data_file_name('w5',i), w5.get_value())
-
-
-def obtain_features(data, label):
-    """ Load the a network's parameters and then generates the training and testing
-        data features.
-    """
-    X=T.ftensor4()
-    Y=T.fmatrix()
-
-    for i in range(N_RUNS):
-
-        trX, teX, trY, teY = get_data_and_labels(i, N_RUNS, data, labels)
-
-        # Get the weights for the neural network.
-        w1 = theano.shared(np.load(data_file_name('w1',i)), name='w1')
-        w2 = theano.shared(np.load(data_file_name('w2',i)), name='w2')
-        w3 = theano.shared(np.load(data_file_name('w3',i)), name='w3')
-        w4 = theano.shared(np.load(data_file_name('w4',i)), name='w4')
-        w5 = theano.shared(np.load(data_file_name('w5',i)), name='w5')
-
-        # Prediction model for generating features.
-        l1, l2, l3, l4, py_x = convnet_model(X, w1, w2, w3, w4, w5, 0., 0.)
-
-        generate = theano.function(inputs=[X], outputs=l4, allow_input_downcast=True)
-
-        # Generate features from the network 128*3*3->625
-
-        train_features = np.zeros((len(trX), (625)), theano.config.floatX)
-
-        for start, end in zip(range(0, len(trX), 200), range(200, (len(trX) + 1), 200)):
-            batch = generate(trX[start:end])
-            train_features[start:end] = batch
-        
-        np.save(data_file_name('train_features_l4'), train_features)
-
-        test_features = np.zeros((len(teX), (625)), theano.config.floatX)
-
-        for start, end in zip(range(0, len(teX), 200), range(200, (len(teX) + 1), 200)):
-            batch = generate(teX[start:end])
-            test_features[start:end] = batch
-        
-        np.save(data_file_name('test_features_l4'), test_features)
-
 
 def test_memories(data, labels, experiment):
 
@@ -382,27 +261,26 @@ def test_memories(data, labels, experiment):
         #plt.show()
 
 
+##############################################################################
+# Main section
+
+TRAIN_NN = -1
+GET_FEATURES = 0
+FIRST_EXP = 1
+SECOND_EXP = 2
+
 
 def main(action):
-    # Load data: trX: training data, teX: testing data;
-    #            trY: training labels, teY: testing labels.
-
-    flag = (action == TRAIN_NN) or (action == GET_FEATURES)
-
-    mnist_tr_data, mnist_te_data, mnist_tr_labels, mnist_te_labels = load_mnist(mnist_path, onehot=flag)
-    data = np.concatenate((mnist_tr_data, mnist_te_data), axis=0)
-    labels = np.concatenate((mnist_tr_labels, mnist_te_labels), axis=0)
-
     if action == TRAIN_NN:
         # Trains a neural network with those sections of data
-        train_nnetwork(data, labels)
+        convnet.train_network()
     elif action == GET_FEATURES:
         # Generates features for the data sections using the previously generate neural network
-        obtain_features(data, labels)
+        convnet.obtain_features()
     else:
-        test_memories(data, labels, action)
+        test_memories()
 
-        ##########################################################################
+        ######################
         # Plot the final graph
 
         average_precision=np.array(average_precision)

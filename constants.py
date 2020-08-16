@@ -1,0 +1,5 @@
+run_path = './runs'
+full_model_filename = run_path + '/' + 'full-model'
+features_model_filename = run_path + '/' + 'features-model'
+train_features_filename = run_path + '/' + 'train_features.npy'
+test_features_filename = run_path + '/' + 'test_features.npy'
