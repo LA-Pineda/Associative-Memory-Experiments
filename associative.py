@@ -1,8 +1,7 @@
-#!/usr/bin/env python
-
 # Created by Raul Peralta-Lozada
 
 import numpy
+import random
 
 
 class AssociativeMemoryError(Exception):
@@ -15,21 +14,23 @@ class AssociativeMemory(object):
         Parameters
         ----------
         n : int
-            The size of the domain.
+            The size of the domain (of properties).
         m : int
-            The size of the range.
+            The size of the range (of representation).
         """
         self.n = n
         self.m = m
-        self.grid = numpy.zeros((self.m, self.n), dtype=numpy.bool)
+
+        # it is m+1 to handle partial functions.
+        self.relation = numpy.zeros((self.m+1, self.n), dtype=numpy.bool)
 
     def __str__(self):
-        grid = numpy.zeros(self.grid.shape, dtype=numpy.unicode)
-        grid[:] = 'O'
-        r, c = numpy.nonzero(self.grid)
+        relation = numpy.zeros((self.m, self.n), dtype=numpy.unicode)
+        relation[:] = 'O'
+        r, c = numpy.nonzero(self.relation[:self.m,:self.n])
         for i in zip(r, c):
-            grid[i] = 'X'
-        return str(grid)
+            relation[i] = 'X'
+        return str(relation)
 
     @property
     def n(self):
@@ -54,72 +55,117 @@ class AssociativeMemory(object):
             raise ValueError('Invalid value for m.')
 
     @property
-    def grid(self):
-        return self._grid
+    def relation(self):
+        return self._relation
 
-    @grid.setter
-    def grid(self, new_grid: numpy.ndarray):
-        if (isinstance(new_grid, numpy.ndarray) and
-                new_grid.dtype == numpy.bool and
-                new_grid.shape == (self.m, self.n)):
-            self._grid = new_grid
+    @relation.setter
+    def relation(self, new_relation: numpy.ndarray):
+        if (isinstance(new_relation, numpy.ndarray) and
+                new_relation.dtype == numpy.bool and
+                new_relation.shape == (self.m+1, self.n)):
+            self._relation = new_relation
         else:
-            raise ValueError('Invalid grid assignment.')
+            raise ValueError('Invalid relation assignment.')
 
     @property
     def entropy(self) -> float:
         """Return the entropy of the Associative Memory."""
         e = 0.0  # entropy
-        v = self.grid.sum(axis=0)  # number of marked cells in the columns
+        v = self.relation[:self.m,:self.n].sum(axis=0)  # number of marked cells in the columns
         for vi in v:
             if vi != 0:
                 e += numpy.log2(1. / vi)
         e *= (-1.0 / self.n)
         return e
 
-    @classmethod
-    def from_grid(cls, grid: numpy.ndarray) -> 'AssociativeMemory':
-        associative_mem = cls(grid.shape[1], grid.shape[0])
-        associative_mem.grid = grid
-        return associative_mem
+    # @classmethod
+    # def from_relation(cls, relation: numpy.ndarray) -> 'AssociativeMemory':
+    #     associative_mem = cls(relation.shape[1], relation.shape[0])
+    #     associative_mem.relation = relation
+    #     return associative_mem
 
-    @staticmethod
-    def vector_to_grid(vector, input_range, min_value):
-        # now is only binary
-        vector = numpy.ravel(vector)
-        n = vector.size
-        if vector.max() > input_range or vector.min() < min_value:
-            raise ValueError('Values in the input vector are invalid.')
-        grid = numpy.zeros((input_range, n), numpy.bool)
-        vector -= min_value
-        grid[vector, range(vector.shape[0])] = True
-        grid = numpy.flipud(grid)
-        return grid
 
-    def abstract(self, vector_input, input_range=2, min_value=0) -> None:
-        if vector_input.size != self.n:
+    @property
+    def undefined(self):
+        return self.m
+
+    
+    def is_defined(self, v):
+        return self.m == v
+
+
+    def vector_to_relation(self, vector):
+        relation = numpy.zeros((self.m+1, self.n), numpy.bool)
+        relation[vector, range(self.n)] = True
+        return relation
+
+
+    # Choose a value for feature i.
+    def choose(self, i):
+        candidates = []
+        
+        for j in range(self.m):
+            if self.relation[j, i]:
+                candidates.append(j)
+        
+        if len(candidates) != 0:
+            k = random.randrange(len(candidates))
+            return candidates[k]
+        else:
+            return self.undefined
+        
+
+    # Reduces a relation to a function
+    def relation_to_vector(self, relation):
+        v = numpy.full(self.n, self.undefined, numpy.int16)
+
+        for i in range(self.n):
+            v[i] = self.choose(i)
+        
+        return v
+
+
+    def abstract(self, r_io) -> None:
+        self.relation = self.relation | r_io
+
+
+    def reduce(self, r_io):
+        return ~r_io | self.relation
+
+
+    def validate(self, vector):
+        if vector.size != self.n:
             raise ValueError('Invalid size of the input data.')
-        else:
-            grid_input = self.vector_to_grid(vector_input, input_range,
-                                             min_value)
-            self.grid = self.grid | grid_input
 
-    def reduce(self, vector_input, input_range=2, min_value=0):
-        if vector_input.size != self.n:
-            raise AssociativeMemoryError('Invalid size of the input data.')
-        else:
-            grid_input = self.vector_to_grid(vector_input,
-                                             input_range, min_value)
-            grid_output = numpy.zeros(self.grid.shape, dtype=self.grid.dtype)
-            for i, cols in enumerate(zip(self.grid.T, grid_input.T)):
-                (i1, ) = numpy.nonzero(cols[0])
-                (i2, ) = numpy.nonzero(cols[1])
-                if numpy.all(numpy.in1d(i2, i1)):
-                    # TODO: finish the reduce operation
-                    if i1.size == i2.size:
-                        pass
-                        # grid_output[0:255, i] =
-                else:
-                    raise AssociativeMemoryError('Applicability '
-                                                 'condition error.')
-            return grid_input
+        if vector.max() > self.m or vector.min() < 0:
+            raise ValueError('Values in the input vector are invalid.')
+
+
+    def register(self, vector) -> None:
+        # Forces it to be a vector.
+        vector = numpy.ravel(vector)
+
+        self.validate(vector)
+
+        r_io = self.vector_to_relation(vector)
+        self.abstract(r_io)
+
+
+    def recognize(self, vector):
+
+        self.validate(vector)
+        r_io = self.vector_to_relation(vector)
+        r_io = self.reduce(r_io)
+        
+        return numpy.all(r_io[:self.m,:self.n] == True)
+
+
+    def recall(self, vector):
+
+        self.validate(vector)
+        r_io = self.vector_to_relation(vector)
+
+        # Only the part that coincides with memory.
+        buffer = self.reduce(r_io) & r_io
+        vout = self.relation_to_vector(buffer)
+        return vout

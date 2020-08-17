@@ -21,55 +21,36 @@ def print_error(*s):
     print('Error:', *s, file = sys.stderr)
 
 
-def file_name_by_extension(s, e, i = None):
-    """ Returns a file name in run_path directory with a given extension
-    """
+def get_ams_results(midx, msize, domain, opm, trf, tef, trl, tel):
+        nobjs = constants.n_objects
+        nmems = int(nobjs/opm)
 
-    if i is None:
-        return run_path + '/' + s + e
-    else:
-        return run_path + '/' + s + '-' + str(i) + e
+        # Per object:
+        # 0.- Total count
+        # 1.- Able to reduce and it is the same digit
+        # 2.- Able to reduce and it is not the same digit 
+        # 3.- Not able to reduce and it is not the same digit
+        # 4.- Not able to reduce and it is the same digit
+        table = np.zeros((nobjs, 5), dtype=np.float64)
+        entropy = np.zeros((nobjs, ), dtype=np.float64)
 
-
-def data_file_name(s, i = None):
-    """ Returns a file name for data(i) in run_path directory
-    """
-
-    return file_name_by_extesion(s, '.npy', i)
-
-
-def picture_file_name(s, i = None):
-    """ Returns a file name for picture(i) in run_path directory
-    """
-
-    return file_name_by_extesion(s, '.png', i)
-
-
-def csv_file_name(s, i = None):
-    """ Returns a file name for csv(i) in run_path directory
-    """
-
-    return file_name_by_extesion(s, '.csv', i)
-
-
-def get_ams_results1(i, s, domain, train_X, test_X, trY, teY):
-        table = np.zeros((10, 5), dtype=np.float64)
-        entropy = np.zeros((10, ), dtype=np.float64)
-        ams = dict.fromkeys(range(10))
-        #print(str(ams))
+        # Create the required associative memories.
+        ams = dict.fromkeys(range(nmems))
         for j in ams:
-            # Create the memories with domain 's'
-            ams[j] = AssociativeMemory(domain, s)
+            ams[j] = AssociativeMemory(domain, msize)
+
         # Round the values
-        if train_X.max()>test_X.max():
-            valMax=train_X.max()
-        else:
-            valMax=test_X.max()
-        train_X_around = np.round(train_X * (s - 1) / valMax).astype(np.int16)
-        test_X_around = np.round(test_X * (s - 1) / valMax).astype(np.int16)
-        # Abstraction
-        for x, y in zip(train_X_around, trY):
-            ams[y].abstract(x, input_range=s)
+        max_value = trf.max()
+        other_value = tef.max()
+        max_value = max_value if max_value > other_value else other_value
+
+        trf_rounded = np.round(trf * (msize - 1) / max_value).astype(np.int16)
+        tef_rounded = np.round(tef * (msize - 1) / max_value).astype(np.int16)
+
+        # Registration
+        for features, label in zip(trf_arounded, trl):
+            i = int(label/opm)
+            ams[i].register(features)
         # Calculate entropies
         for j in ams:
             #print(j)
@@ -93,85 +74,90 @@ def get_ams_results1(i, s, domain, train_X, test_X, trY, teY):
         return (i, table, entropy)
 
     
-def get_ams_results2(i, s, domain, train_X, test_X, trY, teY):
-        table = np.zeros((10, 5), dtype=np.float64)
-        entropy = np.zeros((5, ), dtype=np.float64)
-        ams = dict.fromkeys(range(5))
-        #print(str(ams))
-        for j in ams:
-            # Create the memories with domain 's'
-            ams[j] = AssociativeMemory(domain, s)
-        # Round the values
-        if train_X.max()>test_X.max():
-            valMax=train_X.max()
-        else:
-            valMax=test_X.max()
-        train_X_around = np.round(train_X * (s - 1) / valMax).astype(np.int16)
-        test_X_around = np.round(test_X * (s - 1) / valMax).astype(np.int16)
-        # Abstraction
-        for x, y in zip(train_X_around, trY):
-            yy=y%5
-            ams[yy].abstract(x, input_range=s)
-        # Calculate entropies
-        for j in ams:
-            #print(j)
-            entropy[j] = ams[j].entropy
-        # Reduction
-        for x, y in zip(test_X_around, teY):
-            yy=y%5
-            table[y, 0] += 1
-            for k in ams:
-                try:
-                    ams[k].reduce(x, input_range=s)
-                    if k == yy:
-                        table[y, 1] += 1
-                    else:
-                        table[y, 2] += 1
-                    # confusion_mat[k, y] += 1
-                except AssociativeMemoryError:
-                    if k != yy:
-                        table[y, 3] += 1
-                    else:
-                        table[y, 4] += 1
-        return (i, table, entropy)
+# def get_ams_results2(midx, msize, domain, trf, tef, trl, tel):
+
+#         # Per object:
+#         # 0.- Total count
+#         # 1.- Able to reduce and it is the same digit
+#         # 2.- Able to reduce and it is not the same digit 
+#         # 3.- Not able to reduce and it is not the same digit
+#         # 4.- Not able to reduce and it is the same digit
+ 
+#         table = np.zeros((10, 5), dtype=np.float64)
+#         entropy = np.zeros((5, ), dtype=np.float64)
+#         ams = dict.fromkeys(range(5))
+#         #print(str(ams))
+#         for j in ams:
+#             # Create the memories with domain 's'
+#             ams[j] = AssociativeMemory(domain, msize)
+#         # Round the values
+#         if trf.max()>tef.max():
+#             valMax=trf.max()
+#         else:
+#             valMax=tef.max()
+#         train_X_around = np.round(trf * (msize - 1) / valMax).astype(np.int16)
+#         test_X_around = np.round(tef * (msize - 1) / valMax).astype(np.int16)
+#         # Abstraction
+#         for x, y in zip(train_X_around, trl):
+#             yy=y%5
+#             ams[yy].abstract(x, input_range=msize)
+#         # Calculate entropies
+#         for j in ams:
+#             #print(j)
+#             entropy[j] = ams[j].entropy
+#         # Reduction
+#         for x, y in zip(test_X_around, tel):
+#             yy=y%5
+#             table[y, 0] += 1
+#             for k in ams:
+#                 try:
+#                     ams[k].reduce(x, input_range=s)
+#                     if k == yy:
+#                         table[y, 1] += 1
+#                     else:
+#                         table[y, 2] += 1
+#                     # confusion_mat[k, y] += 1
+#                 except AssociativeMemoryError:
+#                     if k != yy:
+#                         table[y, 3] += 1
+#                     else:
+#                         table[y, 4] += 1
+#         return (midx, table, entropy)
     
 
-def test_memories(data, labels, experiment):
+def test_memories(experiment):
 
-    for i in range(N_RUNS):
+    for i in range(constants.n_memory_tests):
         # Load the features.
-        training_features = np.load(data_file_name('train_features_l4'))
-        testing_features = np.load(data_file_name('test_features_l4.npy'))
+        training_features = np.load(constants.train_features_filename)
+        testing_features = np.load(constants.test_features_filename)
 
-        trX, teX, trY, teY = get_data_and_labels(i, N_RUNS, data, labels)
-        
+        training_labels = np.load(constants.train_labels_filename)
+        testing_labels = np.load(constants.test_labels_filename)
+      
         # The ranges of all the memories that will be trained.
         memory_sizes = (1, 2, 4, 8, 16, 32, 64, 128, 256, 512)
 
         # The domain size, equal to the size of the output layer of the network.
-        domain = 625
+        domain = 512
 
-        # Maximum value of the features in the train set
-        max_val = training_features.max()
-
-        # Train the different co-domain memories
-
-        # For each memory size, and each digit, it stores:
+        # For each memory size, and each object, it stores:
         # 0.- Total count
-        # 1.- Able to reduce and it is the same digit
-        # 2.- Able to reduce and it is not the same digit 
-        # 3.- Not able to reduce and it is not the same digit
-        # 4.- Not able to reduce and it is the same digit
+        # 1.- Able to reduce and it is the same object
+        # 2.- Able to reduce and it is not the same object 
+        # 3.- Not able to reduce and it is not the same object
+        # 4.- Not able to reduce and it is the same object
         tables = np.zeros((len(memory_sizes), 10, 5), dtype=np.float64)
-        entropies = np.zeros((len(memory_sizes), int(10/experiment)), dtype=np.float64)
+        
+        opm = constant.objects_per_memory[experiment]
+        n_memories = int(constant.n_objects/opm)
 
-        print('Train the different co-domain memories -- NinM: ',experiment,' -----',i)
-        if sel == 1:
-            list_tables_entropies = Parallel(n_jobs=8, verbose=50)(
-                delayed(get_ams_results1)(j, s, domain, training_features, testing_features, trY, teY) for j, s in enumerate(memory_sizes))
-        elif sel == 2:
-            list_tables_entropies = Parallel(n_jobs=8, verbose=50)(
-                delayed(get_ams_results2)(j, s, domain, training_features, testing_features, trY, teY) for j, s in enumerate(memory_sizes))
+        # An entropy value per memory size and memory.
+        entropies = np.zeros((len(memory_sizes), n_memories), dtype=np.float64)
+
+        print('Train the different co-domain memories -- NinM: ',experiment,' run: ',i)
+        list_tables_entropies = Parallel(n_jobs=8, verbose=50)(
+            delayed(get_ams_results)(midx, msize, domain, opm, training_features, testing_features, training_labels, testing_labels) for midx, msize in enumerate(memory_sizes))
 
         for j, table, entropy in list_tables_entropies:
             tables[j, :, :] = table
@@ -278,7 +264,7 @@ def main(action):
         # Generates features for the data sections using the previously generate neural network
         convnet.obtain_features()
     else:
-        test_memories()
+        test_memories(action)
 
         ######################
         # Plot the final graph
@@ -348,16 +334,16 @@ if __name__== "__main__" :
                         help='run the experiment with that number')
 
     args = parser.parse_args()
-    action = args.action
+    
+    if hasattr(args, 'action'):
+        action = args.action
+    else:
+        action = args.n
 
-  
-    if (action == None):
         # An experiment was chosen
         if (n < FIRST_EXP) or (n > SECOND_EXP):
             print_error("There are only three experiments available, numbered 1, 2, and 3.")
             exit(1)
-        else:
-            action = args.n
     
     main(action)
 
