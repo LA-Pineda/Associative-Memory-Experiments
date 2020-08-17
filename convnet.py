@@ -41,14 +41,16 @@ def train_network():
     model = tf.keras.models.Sequential()
     model.add(tf.keras.layers.Conv2D(32,(3, 3), activation='relu', padding='same', input_shape=(28, 28, 1)))
     model.add(tf.keras.layers.MaxPooling2D((2, 2)))
-    model.add(tf.keras.layers.Dropout(0.2)),
+    model.add(tf.keras.layers.Dropout(0.2))
     model.add(tf.keras.layers.Conv2D(64, (3, 3), activation='relu'))
     model.add(tf.keras.layers.MaxPooling2D((2, 2)))
-    model.add(tf.keras.layers.Dropout(0.2)),
-    model.add(tf.keras.layers.Conv2D(32, (3, 3), activation='relu'))
+    model.add(tf.keras.layers.Dropout(0.2))
+    model.add(tf.keras.layers.Conv2D(128, (3, 3), activation='relu'))
+    model.add(tf.keras.layers.MaxPooling2D((2, 2)))
     model.add(tf.keras.layers.Flatten())
-    # model.add(tf.keras.layers.Dropout(0.2)),
-    model.add(tf.keras.layers.Dense(64, activation='relu'))
+    model.add(tf.keras.layers.Dropout(0.2))
+    model.add(tf.keras.layers.Dense(512, activation='relu'))
+    model.add(tf.keras.layers.Dropout(0.5)),
     model.add(tf.keras.layers.Dense(10, activation='softmax'))
     
     model.summary()
@@ -77,8 +79,10 @@ def obtain_features():
     model = tf.keras.models.load_model(constants.full_model_filename)
 
     # Drop the full connected neural network part.
-    model.pop()
-    model.pop()
+    model.pop() # Dense (10)
+    model.pop() # Dropout 
+    model.pop() # Dense
+
 
     model.summary()
 
@@ -86,8 +90,10 @@ def obtain_features():
     # (since they generate batches).
     features = model.predict(train_images)
     np.save(constants.train_features_filename, features)
+    np.save(constants.train_labels_filename, train_labels)
     
     features = model.predict(test_images)
     np.save(constants.test_features_filename, features)
+    np.save(constants.test_labels_filename, test_labels)
 
     model.save(constants.features_model_filename)
