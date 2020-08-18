@@ -1,133 +1,142 @@
 import sys
+import gc
 import argparse
 
 import numpy as np
-import matplotlib.pyplot as plt
 from joblib import Parallel, delayed
 from matplotlib import cm
 import matplotlib as mpl
+import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix
+import random
 
 import constants
 import convnet
 from associative import AssociativeMemory, AssociativeMemoryError
 
-
 average_entropy = []
 average_precision = []
 average_recall = []
+behaviours = np.zeros((len(constants.memory_sizes), 5))
 
 
 def print_error(*s):
     print('Error:', *s, file = sys.stderr)
 
 
-def get_ams_results(midx, msize, domain, opm, trf, tef, trl, tel):
-        nobjs = constants.n_objects
-        nmems = int(nobjs/opm)
+def get_label(memories, entropies):
 
-        # Per object:
-        # 0.- Total count
-        # 1.- Able to reduce and it is the same digit
-        # 2.- Able to reduce and it is not the same digit 
-        # 3.- Not able to reduce and it is not the same digit
-        # 4.- Not able to reduce and it is the same digit
-        table = np.zeros((nobjs, 5), dtype=np.float64)
-        entropy = np.zeros((nobjs, ), dtype=np.float64)
+    # return random.randrange(len(memories))
 
-        # Create the required associative memories.
-        ams = dict.fromkeys(range(nmems))
-        for j in ams:
-            ams[j] = AssociativeMemory(domain, msize)
+    i = memories[0] 
+    entropy = entropies[i]
 
-        # Round the values
-        max_value = trf.max()
-        other_value = tef.max()
-        max_value = max_value if max_value > other_value else other_value
-
-        trf_rounded = np.round(trf * (msize - 1) / max_value).astype(np.int16)
-        tef_rounded = np.round(tef * (msize - 1) / max_value).astype(np.int16)
-
-        # Registration
-        for features, label in zip(trf_arounded, trl):
-            i = int(label/opm)
-            ams[i].register(features)
-        # Calculate entropies
-        for j in ams:
-            #print(j)
-            entropy[j] = ams[j].entropy
-        # Reduction
-        for x, y in zip(test_X_around, teY):
-            table[y, 0] += 1
-            for k in ams:
-                try:
-                    ams[k].reduce(x, input_range=s)
-                    if k == y:
-                        table[y, 1] += 1
-                    else:
-                        table[y, 2] += 1
-                    # confusion_mat[k, y] += 1
-                except AssociativeMemoryError:
-                    if k != y:
-                        table[y, 3] += 1
-                    else:
-                        table[y, 4] += 1
-        return (i, table, entropy)
-
+    for j in memories[1:]:
+        if entropy > entropies[j]:
+            i = j
+            entropy = entropies[i]
     
-# def get_ams_results2(midx, msize, domain, trf, tef, trl, tel):
+    return i
 
-#         # Per object:
-#         # 0.- Total count
-#         # 1.- Able to reduce and it is the same digit
-#         # 2.- Able to reduce and it is not the same digit 
-#         # 3.- Not able to reduce and it is not the same digit
-#         # 4.- Not able to reduce and it is the same digit
- 
-#         table = np.zeros((10, 5), dtype=np.float64)
-#         entropy = np.zeros((5, ), dtype=np.float64)
-#         ams = dict.fromkeys(range(5))
-#         #print(str(ams))
-#         for j in ams:
-#             # Create the memories with domain 's'
-#             ams[j] = AssociativeMemory(domain, msize)
-#         # Round the values
-#         if trf.max()>tef.max():
-#             valMax=trf.max()
-#         else:
-#             valMax=tef.max()
-#         train_X_around = np.round(trf * (msize - 1) / valMax).astype(np.int16)
-#         test_X_around = np.round(tef * (msize - 1) / valMax).astype(np.int16)
-#         # Abstraction
-#         for x, y in zip(train_X_around, trl):
-#             yy=y%5
-#             ams[yy].abstract(x, input_range=msize)
-#         # Calculate entropies
-#         for j in ams:
-#             #print(j)
-#             entropy[j] = ams[j].entropy
-#         # Reduction
-#         for x, y in zip(test_X_around, tel):
-#             yy=y%5
-#             table[y, 0] += 1
-#             for k in ams:
-#                 try:
-#                     ams[k].reduce(x, input_range=s)
-#                     if k == yy:
-#                         table[y, 1] += 1
-#                     else:
-#                         table[y, 2] += 1
-#                     # confusion_mat[k, y] += 1
-#                 except AssociativeMemoryError:
-#                     if k != yy:
-#                         table[y, 3] += 1
-#                     else:
-#                         table[y, 4] += 1
-#         return (midx, table, entropy)
+
+def get_ams_results(midx, msize, domain, opm, trf, tef, trl, tel):
+    print('Testing memory size:', msize)
+    behaviour = np.zeros((5, ))
+    # Round the values
+    max_value = trf.max()
+    other_value = tef.max()
+    max_value = max_value if max_value > other_value else other_value
+
+    trf_rounded = np.round(trf * (msize - 1) / max_value).astype(np.int16)
+    tef_rounded = np.round(tef * (msize - 1) / max_value).astype(np.int16)
+
+    nobjs = constants.n_objects
+    nmems = int(nobjs/opm)
+
+    measures = np.zeros((constants.n_measures, nobjs), dtype=np.float64)
+    entropy = np.zeros((nmems, ), dtype=np.float64)
+
+    # Create the required associative memories.
+    ams = dict.fromkeys(range(nmems))
+    for j in ams:
+        ams[j] = AssociativeMemory(domain, msize)
+
+    # Registration
+    for features, label in zip(trf_rounded, trl):
+        i = int(label/opm)
+        ams[i].register(features)
+
+    # Calculate entropies
+    for j in ams:
+        entropy[j] = ams[j].entropy
+
+    # Recognition
+    labels = []
+    predictions = []
+
+    remove_extra = False
+    n = 0;
+    response_size = 0
+
+    for features, label in zip(tef_rounded, tel):
+        correct = int(label/opm)
+        labels.append(correct)
+        n += 1
+
+        memories = []
+        for k in ams:
+                recognized = ams[k].recognize(features)
+                if recognized:
+                    memories.append(k)
+
+        response_size += len(memories)
+        if len(memories) == 0:
+            predictions.append(len(constants.all_labels))
+            remove_extra = True
+
+            # Register empty case
+            behaviour[0] += 1
+        else:
+            l = get_label(memories, entropy)
+
+            if correct in memories:
+                # l = label
+                if l == label:
+                    # Register entropy worked.
+                    behaviour[3] += 1
+                else:
+                    # Register entropy did not work.
+                    behaviour[2] += 1
+            else:
+                # Register not in remembered.
+                behaviour[1] += 1
+            
+            predictions.append(l)
+
+    behaviour[4] = response_size * 1.0/n
+    labels = np.array(labels)
+    predictions = np.array(predictions)
+    cm = confusion_matrix(labels, predictions)
+
+    if remove_extra:
+        (m, n) = cm.shape
+        cm = np.delete(cm, m-1, 0)  
+        cm = np.delete(cm, n-1, 1)
+
+    recall = np.diag(cm) / np.sum(cm, axis = 1)
+    precision = np.diag(cm) / np.sum(cm, axis = 0)
+
+    measures[constants.precision_idx, :] = precision
+    measures[constants.recall_idx, :] = recall
+    
+    return (midx, measures, entropy, behaviour)
     
 
 def test_memories(experiment):
 
     for i in range(constants.n_memory_tests):
+        gc.collect()
+
         # Load the features.
         training_features = np.load(constants.train_features_filename)
         testing_features = np.load(constants.test_features_filename)
@@ -135,55 +144,39 @@ def test_memories(experiment):
         training_labels = np.load(constants.train_labels_filename)
         testing_labels = np.load(constants.test_labels_filename)
       
-        # The ranges of all the memories that will be trained.
-        memory_sizes = (1, 2, 4, 8, 16, 32, 64, 128, 256, 512)
-
         # The domain size, equal to the size of the output layer of the network.
-        domain = 512
+        domain = constants.domain
 
-        # For each memory size, and each object, it stores:
-        # 0.- Total count
-        # 1.- Able to reduce and it is the same object
-        # 2.- Able to reduce and it is not the same object 
-        # 3.- Not able to reduce and it is not the same object
-        # 4.- Not able to reduce and it is the same object
-        tables = np.zeros((len(memory_sizes), 10, 5), dtype=np.float64)
+        tables = np.zeros((len(constants.memory_sizes), constants.n_objects, constants.n_measures), dtype=np.float64)
         
-        opm = constant.objects_per_memory[experiment]
-        n_memories = int(constant.n_objects/opm)
+        opm = constants.objects_per_memory[experiment]
+        n_memories = int(constants.n_objects/opm)
 
         # An entropy value per memory size and memory.
-        entropies = np.zeros((len(memory_sizes), n_memories), dtype=np.float64)
+        entropies = np.zeros((len(constants.memory_sizes), n_memories), dtype=np.float64)
 
         print('Train the different co-domain memories -- NinM: ',experiment,' run: ',i)
-        list_tables_entropies = Parallel(n_jobs=8, verbose=50)(
-            delayed(get_ams_results)(midx, msize, domain, opm, training_features, testing_features, training_labels, testing_labels) for midx, msize in enumerate(memory_sizes))
+        list_tables_entropies = Parallel(n_jobs=4, verbose=50)(
+            delayed(get_ams_results)(midx, msize, domain, opm, training_features, testing_features, training_labels, testing_labels) for midx, msize in enumerate(constants.memory_sizes))
 
-        for j, table, entropy in list_tables_entropies:
-            tables[j, :, :] = table
+        for j, table, entropy, behaviour in list_tables_entropies:
+            tables[j, :, :] = table.T
             entropies[j, :] = entropy
+            behaviours[j, :] = behaviour
 
 
         ##########################################################################################
 
         # Calculate precision and recall
 
-        print('Calculate precision and recall')
-        precision = np.zeros((len(memory_sizes), 11, 1), dtype=np.float64)
-        recall = np.zeros((len(memory_sizes), 11, 1), dtype=np.float64)
+        precision = np.zeros((len(constants.memory_sizes), 11, 1), dtype=np.float64)
+        recall = np.zeros((len(constants.memory_sizes), 11, 1), dtype=np.float64)
 
-        for j, s in enumerate(memory_sizes):
-            # Proportion of correct reductions among all reductions.
-            prec_aux = tables[j, :, 1] / (tables[j, :, 1] + tables[j, :, 2])
-
-            # Proportion of correct reductions among all cases.
-            recall_aux = tables[j, :, 1] / tables[j, :, 0]
-
-
-            precision[j, 0:10, 0] = prec_aux[:]
-            precision[j, 10, 0] = prec_aux.mean()
-            recall[j, 0:10, 0] = recall_aux[:]
-            recall[j, 10, 0] = recall_aux.mean()
+        for j, s in enumerate(constants.memory_sizes):
+            precision[j, 0:10, 0] = tables[j, : , constants.precision_idx]
+            precision[j, 10, 0] = tables[j, : , constants.precision_idx].mean()
+            recall[j, 0:10, 0] = tables[j, : , constants.recall_idx]
+            recall[j, 10, 0] = tables[j, : , constants.recall_idx].mean()
         
 
         ###################################################################3##
@@ -198,9 +191,9 @@ def test_memories(experiment):
         # Average recall as percentage
         average_recall.append( recall[:, 10, :] * 100 )
         
-        np.save(data_file_name('average_precision'), average_precision)
-        np.save(data_file_name('average_recall'), average_recall)
-        np.save(data_file_name('average_entropy'), average_entropy)
+        np.save(constants.data_filename('average_precision'), average_precision)
+        np.save(constants.data_filename('average_recall'), average_recall)
+        np.save(constants.data_filename('average_entropy'), average_entropy)
         
         print('avg precision: ',average_precision[i])
         print('avg recall: ',average_recall[i])
@@ -223,11 +216,11 @@ def test_memories(experiment):
         plt.clf()
 
 
-        plt.plot(np.arange(0, 100, 10), average_precision[i], 'r-o', label='Precision')
-        plt.plot(np.arange(0, 100, 10), average_recall[i], 'b-s', label='Recall')
+        plt.plot(np.arange(0, 100, len(constants.memory_sizes)), average_precision[i], 'r-o', label='Precision')
+        plt.plot(np.arange(0, 100, len(constants.memory_sizes)), average_recall[i], 'b-s', label='Recall')
         plt.xlim(-0.1, 91)
         plt.ylim(0, 102)
-        plt.xticks(np.arange(0, 100, 10), memory_sizes)
+        plt.xticks(np.arange(0, 100, 10), constants.memory_sizes)
 
         plt.xlabel('Range Quantization Levels')
         plt.ylabel('Percentage [%]')
@@ -241,10 +234,12 @@ def test_memories(experiment):
         cbar.ax.set_xticklabels(entropy_labels)
         cbar.set_label('Entropy')
 
-        plt.savefig(picture_file_name('graph_l4_{0}_{1}'.format(experiment,i)), dpi=500)
+        plt.savefig(constants.picture_filename('graph_l4_{0}_{1}'.format(experiment,i)), dpi=500)
         print('Iteration {0} complete'.format(i))
         #Uncomment the following line for plot at runtime
-        #plt.show()
+        plt.show()
+
+        return average_precision, average_recall, average_entropy
 
 
 ##############################################################################
@@ -264,7 +259,7 @@ def main(action):
         # Generates features for the data sections using the previously generate neural network
         convnet.obtain_features()
     else:
-        test_memories(action)
+        average_precision, average_recall, average_entropy = test_memories(action)
 
         ######################
         # Plot the final graph
@@ -287,10 +282,11 @@ def main(action):
         print('main avg recall: ',main_average_recall)
         print('main avg entropy: ',main_average_entropy)
 
-        np.savetxt(csv_file_name('main_average_precision--{0}'.format(action)), main_average_precision, delimiter=',')
-        np.savetxt(csv_file_name('main_average_recall--{0}'.format(action)), main_average_recall, delimiter=',')
-        np.savetxt(csv_file_name('main_average_entropy--{0}'.format(action)), main_average_entropy, delimiter=',')
+        np.savetxt(constants.csv_filename('main_average_precision--{0}'.format(action)), main_average_precision, delimiter=',')
+        np.savetxt(constants.csv_filename('main_average_recall--{0}'.format(action)), main_average_recall, delimiter=',')
+        np.savetxt(constants.csv_filename('main_average_entropy--{0}'.format(action)), main_average_entropy, delimiter=',')
 
+        np.savetxt(constants.csv_filename('behaviours'), behaviours, delimiter=',')
         cmap = mpl.colors.LinearSegmentedColormap.from_list('mycolors',['cyan','purple'])
         Z = [[0,0],[0,0]]
         step = 0.1
@@ -303,7 +299,7 @@ def main(action):
         plt.plot(np.arange(0, 100, 10), main_average_recall, 'b-s', label='Recall')
         plt.xlim(-0.1, 91)
         plt.ylim(0, 102)
-        plt.xticks(np.arange(0, 100, 10), memory_sizes)
+        plt.xticks(np.arange(0, 100, 10), constants.memory_sizes)
 
         plt.xlabel('Range Quantization Levels')
         plt.ylabel('Percentage [%]')
@@ -317,7 +313,7 @@ def main(action):
         cbar.ax.set_xticklabels(entropy_labels)
         cbar.set_label('Entropy')
 
-        plt.savefig(picture_file_name('graph_l4_MEAN-{0}'.format(action)), dpi=500)
+        plt.savefig(constants.picture_filename('graph_l4_MEAN-{0}'.format(action)), dpi=500)
         print('Test complete')
 
 
@@ -330,22 +326,22 @@ if __name__== "__main__" :
                         help='train the neural network')
     group.add_argument('-f', action='store_const', const=GET_FEATURES, dest='action',
                         help='get data features using the neural network')
-    group.add_argument('-e', dest='n', type=int, default=argparse.SUPPRESS,
+    group.add_argument('-e', nargs='?', dest='n', type=int, 
                         help='run the experiment with that number')
 
     args = parser.parse_args()
+    action = args.action
+    n = args.n
     
-    if hasattr(args, 'action'):
-        action = args.action
-    else:
-        action = args.n
-
+    if action is None:
         # An experiment was chosen
         if (n < FIRST_EXP) or (n > SECOND_EXP):
             print_error("There are only three experiments available, numbered 1, 2, and 3.")
             exit(1)
-    
-    main(action)
+        main(n)
+    else:
+        main(action)
 
+    
     
 
