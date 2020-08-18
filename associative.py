@@ -115,8 +115,16 @@ class AssociativeMemory(object):
             return self.undefined
         
 
+    def abstract(self, r_io) -> None:
+        self.relation = self.relation | r_io
+
+
+    def containment(self, r_io):
+        return ~r_io | self.relation
+
+
     # Reduces a relation to a function
-    def relation_to_vector(self, relation):
+    def lreduce(self, relation):
         v = numpy.full(self.n, self.undefined, numpy.int16)
 
         for i in range(self.n):
@@ -124,18 +132,18 @@ class AssociativeMemory(object):
         
         return v
 
+    
+    def wrap(self, relation):
+        wrapper = numpy.zeros((self.m+1, self.n), dtype=numpy.bool)
 
-    def abstract(self, r_io) -> None:
-        self.relation = self.relation | r_io
-
-
-    def reduce(self, r_io):
-        return ~r_io | self.relation
-
+        for i in range(self.m):
+            for j in range(self.n):
+                print(i)
+                
 
     def validate(self, vector):
         if vector.size != self.n:
-            raise ValueError('Invalid size of the input data.')
+            raise ValueError('Invalid size of the input data. Expected', self.n, 'and given', vector.size)
 
         if vector.max() > self.m or vector.min() < 0:
             raise ValueError('Values in the input vector are invalid.')
@@ -155,7 +163,7 @@ class AssociativeMemory(object):
 
         self.validate(vector)
         r_io = self.vector_to_relation(vector)
-        r_io = self.reduce(r_io)
+        r_io = self.containment(r_io)
         
         return numpy.all(r_io[:self.m,:self.n] == True)
 
@@ -164,8 +172,11 @@ class AssociativeMemory(object):
 
         self.validate(vector)
         r_io = self.vector_to_relation(vector)
+        buffer = self.containment(r_io)
 
-        # Only the part that coincides with memory.
-        buffer = self.reduce(r_io) & r_io
-        vout = self.relation_to_vector(buffer)
-        return vout
+        if numpy.all(r_io[:self.m,:self.n] == True):
+            r_io = self.lreduce(r_io)
+        else:
+            r_io = numpy.zeros((self.m+1, self.n), dtype=numpy.bool)
+
+        return r_io
