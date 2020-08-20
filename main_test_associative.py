@@ -17,7 +17,6 @@ from associative import AssociativeMemory, AssociativeMemoryError
 average_entropy = []
 average_precision = []
 average_recall = []
-behaviours = np.zeros((len(constants.memory_sizes), 5))
 
 
 def print_error(*s):
@@ -40,8 +39,6 @@ def get_label(memories, entropies):
 
 
 def get_ams_results(midx, msize, domain, opm, trf, tef, trl, tel):
-    print('Testing memory size:', msize)
-    behaviour = np.zeros((5, ))
     # Round the values
     max_value = trf.max()
     other_value = tef.max()
@@ -71,65 +68,32 @@ def get_ams_results(midx, msize, domain, opm, trf, tef, trl, tel):
         entropy[j] = ams[j].entropy
 
     # Recognition
-    labels = []
-    predictions = []
-
-    remove_extra = False
-    n = 0;
-    response_size = 0
-
+    cms = np.zeros((nmems, 2, 2))
+    TP = (0,0)
+    FP = (0,1)
+    FN = (1,0)
+    TN = (1,1)
+ 
     for features, label in zip(tef_rounded, tel):
         correct = int(label/opm)
-        labels.append(correct)
-        n += 1
-
-        memories = []
         for k in ams:
-                recognized = ams[k].recognize(features)
-                if recognized:
-                    memories.append(k)
-
-        response_size += len(memories)
-        if len(memories) == 0:
-            predictions.append(len(constants.all_labels))
-            remove_extra = True
-
-            # Register empty case
-            behaviour[0] += 1
-        else:
-            l = get_label(memories, entropy)
-
-            if correct in memories:
-                # l = label
-                if l == label:
-                    # Register entropy worked.
-                    behaviour[3] += 1
-                else:
-                    # Register entropy did not work.
-                    behaviour[2] += 1
+            recognized = ams[k].recognize(features)
+            if (k == correct) and recognized:
+                cms[k][TP] += 1
+            elif k == correct:
+                cms[k][FN] += 1
+            elif recognized:
+                cms[k][FP] += 1
             else:
-                # Register not in remembered.
-                behaviour[1] += 1
-            
-            predictions.append(l)
+                cms[k][TN] += 1
+ 
+    measures = np.zeros((constants.n_measures, nmems))
 
-    behaviour[4] = response_size * 1.0/n
-    labels = np.array(labels)
-    predictions = np.array(predictions)
-    cm = confusion_matrix(labels, predictions)
-
-    if remove_extra:
-        (m, n) = cm.shape
-        cm = np.delete(cm, m-1, 0)  
-        cm = np.delete(cm, n-1, 1)
-
-    recall = np.diag(cm) / np.sum(cm, axis = 1)
-    precision = np.diag(cm) / np.sum(cm, axis = 0)
-
-    measures[constants.precision_idx, :] = precision
-    measures[constants.recall_idx, :] = recall
-    
-    return (midx, measures, entropy, behaviour)
+    for i in range(nmems):
+        measures[constants.precision_idx,i] = cms[i][TP] /(cms[i][TP] + cms[i][FP])
+        measures[constants.recall_idx,i] = cms[i][TP] /(cms[i][TP] + cms[i][FN])
+   
+    return (midx, measures, entropy)
     
 
 def test_memories(experiment):
@@ -159,10 +123,9 @@ def test_memories(experiment):
         list_tables_entropies = Parallel(n_jobs=4, verbose=50)(
             delayed(get_ams_results)(midx, msize, domain, opm, training_features, testing_features, training_labels, testing_labels) for midx, msize in enumerate(constants.memory_sizes))
 
-        for j, table, entropy, behaviour in list_tables_entropies:
+        for j, table, entropy in list_tables_entropies:
             tables[j, :, :] = table.T
             entropies[j, :] = entropy
-            behaviours[j, :] = behaviour
 
 
         ##########################################################################################
@@ -286,7 +249,6 @@ def main(action):
         np.savetxt(constants.csv_filename('main_average_recall--{0}'.format(action)), main_average_recall, delimiter=',')
         np.savetxt(constants.csv_filename('main_average_entropy--{0}'.format(action)), main_average_entropy, delimiter=',')
 
-        np.savetxt(constants.csv_filename('behaviours'), behaviours, delimiter=',')
         cmap = mpl.colors.LinearSegmentedColormap.from_list('mycolors',['cyan','purple'])
         Z = [[0,0],[0,0]]
         step = 0.1

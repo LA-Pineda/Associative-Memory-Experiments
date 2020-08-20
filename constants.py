@@ -50,4 +50,4 @@ recall_idx = 1
 n_measures = 2
 
 memory_sizes = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
-domain = 640
+domain = 256

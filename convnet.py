@@ -45,18 +45,18 @@ def train_network():
     model.add(tf.keras.layers.Conv2D(64, (3, 3), activation='relu'))
     model.add(tf.keras.layers.MaxPooling2D((2, 2)))
     model.add(tf.keras.layers.Dropout(0.2))
-    model.add(tf.keras.layers.Conv2D(160, (3, 3), activation='relu'))
+    model.add(tf.keras.layers.Conv2D(128, (3, 3), activation='relu'))
     model.add(tf.keras.layers.MaxPooling2D((2, 2)))
     model.add(tf.keras.layers.Flatten())
     model.add(tf.keras.layers.Dropout(0.2))
-    model.add(tf.keras.layers.Dense(512, activation='relu'))
+    model.add(tf.keras.layers.Dense(256, activation='relu'))
     model.add(tf.keras.layers.Dropout(0.5)),
     model.add(tf.keras.layers.Dense(10, activation='softmax'))
     
     model.summary()
 
     model.compile(loss='categorical_crossentropy',
-                optimizer='sgd',
+                optimizer='RMSprop',
                 metrics=['accuracy'])
 
     model.fit(train_images, train_labels,
@@ -81,7 +81,7 @@ def obtain_features():
     # Drop the full connected neural network part.
     model.pop() # Dense (10)
     model.pop() # Dropout 
-    model.pop() # Dense
+    # model.pop() # Dense
 
 
     model.summary()
