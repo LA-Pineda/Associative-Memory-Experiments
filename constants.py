@@ -30,24 +30,35 @@ def picture_filename(s, i = None):
 
 
 # Models (neural networks).
-full_model_filename = filename('full-model')
-features_model_filename = filename('features-model')
+full_model_filename = filename('full_model')
+features_model_dense_filename = filename('features_dense-model')
+features_model_conv2d_filename = filename('features_conv2d-model')
 
 # Features and labels.
-train_features_filename = filename('train_features.npy')
-test_features_filename = filename('test_features.npy')
-train_labels_filename = filename('train_labels.npy')
-test_labels_filename = filename('test_labels.npy')
+train_features_dense_filename = filename('train_dense-features.npy')
+train_features_conv2d_filename = filename('train_conv2d-features.npy')
+test_features_dense_filename = filename('test_dense-features.npy')
+test_features_conv2d_filename = filename('test_conv2d-features.npy')
+
+train_labels_filename = filename('train-labels.npy')
+test_labels_filename = filename('test-labels.npy')
+
+dense_domain = 512
+conv2d_domain = 512
+
+dense_tag = 'dense'
+conv2d_tag = 'conv2d'
 
 n_memory_tests = 1
-n_objects = 10
-objects_per_memory = [0, 1, 2]
+n_labels = 10
+labels_per_memory = [0, 1, 2]
 
-all_labels = list(range(n_objects))
+all_labels = list(range(n_labels))
   
 precision_idx = 0
 recall_idx = 1
 n_measures = 2
+mean_idx = 10
+std_idx = 11
 
 memory_sizes = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
-domain = 640

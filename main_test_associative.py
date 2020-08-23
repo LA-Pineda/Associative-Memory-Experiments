@@ -14,27 +14,25 @@ import constants
 import convnet
 from associative import AssociativeMemory, AssociativeMemoryError
 
-average_entropy = []
-average_precision = []
-average_recall = []
-behaviours = np.zeros((len(constants.memory_sizes), 5))
-
 
 def print_error(*s):
     print('Error:', *s, file = sys.stderr)
 
 
-def get_label(memories, entropies):
+def get_label(memories, entropies = None):
 
-    # return random.randrange(len(memories))
+    # Random selection
+    if entropies is None:
+        i = random.randrange(len(memories))
+        return memories[i]
+    else:
+        i = memories[0] 
+        entropy = entropies[i]
 
-    i = memories[0] 
-    entropy = entropies[i]
-
-    for j in memories[1:]:
-        if entropy > entropies[j]:
-            i = j
-            entropy = entropies[i]
+        for j in memories[1:]:
+            if entropy > entropies[j]:
+                i = j
+                entropy = entropies[i]
     
     return i
 
@@ -50,7 +48,7 @@ def get_ams_results(midx, msize, domain, opm, trf, tef, trl, tel):
     trf_rounded = np.round(trf * (msize - 1) / max_value).astype(np.int16)
     tef_rounded = np.round(tef * (msize - 1) / max_value).astype(np.int16)
 
-    nobjs = constants.n_objects
+    nobjs = constants.n_labels
     nmems = int(nobjs/opm)
 
     measures = np.zeros((constants.n_measures, nobjs), dtype=np.float64)
@@ -97,7 +95,8 @@ def get_ams_results(midx, msize, domain, opm, trf, tef, trl, tel):
             # Register empty case
             behaviour[0] += 1
         else:
-            l = get_label(memories, entropy)
+            # l = get_label(memories, entropy)
+            l = get_label(memories)
 
             if correct in memories:
                 # l = label
@@ -132,35 +131,36 @@ def get_ams_results(midx, msize, domain, opm, trf, tef, trl, tel):
     return (midx, measures, entropy, behaviour)
     
 
-def test_memories(experiment):
+def test_memories(training_features, training_labes, \
+    testing_features, testing_labels, domain, tag, experiment):
+
+    average_entropy = []
+    stdev_entropy = []
+    average_precision = []
+    stdev_precision = [] 
+    average_recall = []
+    stdev_recall = []
+
+    behaviours = np.zeros((len(constants.memory_sizes), 5))
 
     for i in range(constants.n_memory_tests):
         gc.collect()
 
-        # Load the features.
-        training_features = np.load(constants.train_features_filename)
-        testing_features = np.load(constants.test_features_filename)
 
-        training_labels = np.load(constants.train_labels_filename)
-        testing_labels = np.load(constants.test_labels_filename)
-      
-        # The domain size, equal to the size of the output layer of the network.
-        domain = constants.domain
-
-        tables = np.zeros((len(constants.memory_sizes), constants.n_objects, constants.n_measures), dtype=np.float64)
+        measures_per_size = np.zeros((len(constants.memory_sizes), constants.n_labels, constants.n_measures), dtype=np.float64)
         
-        opm = constants.objects_per_memory[experiment]
-        n_memories = int(constants.n_objects/opm)
+        lpm = constants.labels_per_memory[experiment]
+        n_memories = int(constants.n_labels/lpm)
 
         # An entropy value per memory size and memory.
         entropies = np.zeros((len(constants.memory_sizes), n_memories), dtype=np.float64)
 
         print('Train the different co-domain memories -- NinM: ',experiment,' run: ',i)
-        list_tables_entropies = Parallel(n_jobs=4, verbose=50)(
-            delayed(get_ams_results)(midx, msize, domain, opm, training_features, testing_features, training_labels, testing_labels) for midx, msize in enumerate(constants.memory_sizes))
+        list_measures_entropies = Parallel(n_jobs=4, verbose=50)(
+            delayed(get_ams_results)(midx, msize, domain, lpm, training_features, testing_features, training_labels, testing_labels) for midx, msize in enumerate(constants.memory_sizes))
 
-        for j, table, entropy, behaviour in list_tables_entropies:
-            tables[j, :, :] = table.T
+        for j, measures, entropy, behaviour in list_measures_entropies:
+            measures_per_size[j, :, :] = measures.T
             entropies[j, :] = entropy
             behaviours[j, :] = behaviour
 
@@ -169,14 +169,16 @@ def test_memories(experiment):
 
         # Calculate precision and recall
 
-        precision = np.zeros((len(constants.memory_sizes), 11, 1), dtype=np.float64)
-        recall = np.zeros((len(constants.memory_sizes), 11, 1), dtype=np.float64)
+        precision = np.zeros((len(constants.memory_sizes), 12, 1), dtype=np.float64)
+        recall = np.zeros((len(constants.memory_sizes), 12, 1), dtype=np.float64)
 
         for j, s in enumerate(constants.memory_sizes):
-            precision[j, 0:10, 0] = tables[j, : , constants.precision_idx]
-            precision[j, 10, 0] = tables[j, : , constants.precision_idx].mean()
-            recall[j, 0:10, 0] = tables[j, : , constants.recall_idx]
-            recall[j, 10, 0] = tables[j, : , constants.recall_idx].mean()
+            precision[j, 0:10, 0] = measures_per_size[j, : , constants.precision_idx]
+            precision[j, constants.mean_idx, 0] = measures_per_size[j, : , constants.precision_idx].mean()
+            precision[j, constants.std_idx, 0] = measures_per_size[j, : , constants.precision_idx].std()
+            recall[j, 0:10, 0] = measures_per_size[j, : , constants.recall_idx]
+            recall[j, constants.mean_idx, 0] = measures_per_size[j, : , constants.recall_idx].mean()
+            recall[j, constants.std_idx, 0] = measures_per_size[j, : , constants.recall_idx].std()
         
 
         ###################################################################3##
@@ -184,22 +186,16 @@ def test_memories(experiment):
 
         # Average entropy among al digits.
         average_entropy.append( entropies.mean(axis=1) )
+        stdev_entropy.append( entropies.std(axis=1) )
 
         # Average precision as percentage
-        average_precision.append( precision[:, 10, :] * 100 )
+        average_precision.append( precision[:, constants.mean_idx, :] * 100 )
+        stdev_precision.append( precision[:, constants.std_idx, :] * 100 )
 
         # Average recall as percentage
-        average_recall.append( recall[:, 10, :] * 100 )
+        average_recall.append( recall[:, constants.mean_idx, :] * 100 )
+        stdev_recall.append( recall[:, constants.std_idx, :] * 100 )
         
-        np.save(constants.data_filename('average_precision'), average_precision)
-        np.save(constants.data_filename('average_recall'), average_recall)
-        np.save(constants.data_filename('average_entropy'), average_entropy)
-        
-        print('avg precision: ',average_precision[i])
-        print('avg recall: ',average_recall[i])
-        print('avg entropy: ',average_entropy[i])
-
-
         # Plot of precision and recall with entropies
 
         print('Plot of precision and recall with entropies-----{0}'.format(i))
@@ -239,7 +235,61 @@ def test_memories(experiment):
         #Uncomment the following line for plot at runtime
         plt.show()
 
-        return average_precision, average_recall, average_entropy
+
+    ######################
+    # Plot the final graph
+
+    average_precision=np.array(average_precision)
+    main_average_precision=[]
+
+    average_recall=np.array(average_recall)
+    main_average_recall=[]
+
+    average_entropy=np.array(average_entropy)
+    main_average_entropy=[]
+
+    for i in range(10):
+        main_average_precision.append( average_precision[:,i].mean() )
+        main_average_recall.append( average_recall[:,i].mean() )
+        main_average_entropy.append( average_entropy[:,i].mean() )
+        
+    print('main avg precision: ',main_average_precision)
+    print('main avg recall: ',main_average_recall)
+    print('main avg entropy: ',main_average_entropy)
+
+    np.savetxt(constants.csv_filename('main_average_precision--{0}'.format(action)), main_average_precision, delimiter=',')
+    np.savetxt(constants.csv_filename('main_average_recall--{0}'.format(action)), main_average_recall, delimiter=',')
+    np.savetxt(constants.csv_filename('main_average_entropy--{0}'.format(action)), main_average_entropy, delimiter=',')
+
+    np.savetxt(constants.csv_filename('behaviours'), behaviours, delimiter=',')
+    cmap = mpl.colors.LinearSegmentedColormap.from_list('mycolors',['cyan','purple'])
+    Z = [[0,0],[0,0]]
+    step = 0.1
+    levels = np.arange(0.0, 90 + step, step)
+    CS3 = plt.contourf(Z, levels, cmap=cmap)
+
+    plt.clf()
+
+    plt.plot(np.arange(0, 100, 10), main_average_precision, 'r-o', label='Precision')
+    plt.plot(np.arange(0, 100, 10), main_average_recall, 'b-s', label='Recall')
+    plt.xlim(-0.1, 91)
+    plt.ylim(0, 102)
+    plt.xticks(np.arange(0, 100, 10), constants.memory_sizes)
+
+    plt.xlabel('Range Quantization Levels')
+    plt.ylabel('Percentage [%]')
+    plt.legend(loc=4)
+    plt.grid(True)
+
+    entropy_labels = [str(e) for e in np.around(main_average_entropy, decimals=1)]
+
+    cbar = plt.colorbar(CS3, orientation='horizontal')
+    cbar.set_ticks(np.arange(0, 100, 10))
+    cbar.ax.set_xticklabels(entropy_labels)
+    cbar.set_label('Entropy')
+
+    plt.savefig(constants.picture_filename('graph_l4_MEAN-{0}'.format(action)), dpi=500)
+    print('Test complete')
 
 
 ##############################################################################
@@ -259,62 +309,28 @@ def main(action):
         # Generates features for the data sections using the previously generate neural network
         convnet.obtain_features()
     else:
-        average_precision, average_recall, average_entropy = test_memories(action)
+        training_labels = np.load(constants.train_labels_filename)
+        testing_labels = np.load(constants.test_labels_filename)
 
-        ######################
-        # Plot the final graph
+        training_features = np.load(constants.train_features_dense_filename)
+        testing_features = np.load(constants.test_features_dense_filename)
 
-        average_precision=np.array(average_precision)
-        main_average_precision=[]
+        # The domain size, equal to the size of the output layer of the network.
+        domain = constants.dense_domain
+        tag = constants.dense_tag
 
-        average_recall=np.array(average_recall)
-        main_average_recall=[]
+        test_memories(training_features, training_labels, \
+            testing_features, testing_labels, domain, tag, action)
 
-        average_entropy=np.array(average_entropy)
-        main_average_entropy=[]
+        training_features = np.load(constants.train_features_conv2d_filename)
+        testing_features = np.load(constants.test_features_conv2d_filename)
+        domain = constants.conv2d_domain
+        tag = constants.conv2d_tag
 
-        for i in range(10):
-            main_average_precision.append( average_precision[:,i].mean() )
-            main_average_recall.append( average_recall[:,i].mean() )
-            main_average_entropy.append( average_entropy[:,i].mean() )
-            
-        print('main avg precision: ',main_average_precision)
-        print('main avg recall: ',main_average_recall)
-        print('main avg entropy: ',main_average_entropy)
+        test_memories(training_features, training_labels, \
+            testing_features, testing_labels, domain, tag, action)
+      
 
-        np.savetxt(constants.csv_filename('main_average_precision--{0}'.format(action)), main_average_precision, delimiter=',')
-        np.savetxt(constants.csv_filename('main_average_recall--{0}'.format(action)), main_average_recall, delimiter=',')
-        np.savetxt(constants.csv_filename('main_average_entropy--{0}'.format(action)), main_average_entropy, delimiter=',')
-
-        np.savetxt(constants.csv_filename('behaviours'), behaviours, delimiter=',')
-        cmap = mpl.colors.LinearSegmentedColormap.from_list('mycolors',['cyan','purple'])
-        Z = [[0,0],[0,0]]
-        step = 0.1
-        levels = np.arange(0.0, 90 + step, step)
-        CS3 = plt.contourf(Z, levels, cmap=cmap)
-
-        plt.clf()
-
-        plt.plot(np.arange(0, 100, 10), main_average_precision, 'r-o', label='Precision')
-        plt.plot(np.arange(0, 100, 10), main_average_recall, 'b-s', label='Recall')
-        plt.xlim(-0.1, 91)
-        plt.ylim(0, 102)
-        plt.xticks(np.arange(0, 100, 10), constants.memory_sizes)
-
-        plt.xlabel('Range Quantization Levels')
-        plt.ylabel('Percentage [%]')
-        plt.legend(loc=4)
-        plt.grid(True)
-
-        entropy_labels = [str(e) for e in np.around(main_average_entropy, decimals=1)]
-
-        cbar = plt.colorbar(CS3, orientation='horizontal')
-        cbar.set_ticks(np.arange(0, 100, 10))
-        cbar.ax.set_xticklabels(entropy_labels)
-        cbar.set_label('Entropy')
-
-        plt.savefig(constants.picture_filename('graph_l4_MEAN-{0}'.format(action)), dpi=500)
-        print('Test complete')
 
 
 
