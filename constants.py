@@ -61,10 +61,12 @@ n_measures = 2
 mean_idx = 10
 std_idx = 11
 
-no_response_idx = 0
-no_correct_response_idx = 1
-no_correct_chosen_idx = 2
-correct_response_idx = 3
-total_respondes_idx = 4
+no_response_idx = 2
+no_correct_response_idx = 3
+no_correct_chosen_idx = 4
+correct_response_idx = 5
+mean_responses_idx = 6
+
+n_behaviours = 7
 
 memory_sizes = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]

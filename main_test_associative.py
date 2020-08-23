@@ -29,9 +29,9 @@ def plot_pre_graph (pre_mean, rec_mean, ent_mean, pre_std, rec_std, ent_std, tag
     plt.clf()
 
     main_step = len(constants.memory_sizes)
-    plt.plot(np.arange(0, 100, main_step), pre_mean, 'r-o', label='Precision')
-    plt.plot(np.arange(0, 100, main_step), rec_mean, 'b-s', label='Recall')
-    plt.xlim(-0.1, 91)
+    plt.errorbar(np.arange(0, 100, main_step), pre_mean, fmt='r-o', yerr=pre_std, label='Precision')
+    plt.errorbar(np.arange(0, 100, main_step), rec_mean, fmt='b-s', yerr=rec_std, label='Recall')
+    plt.xlim(0, 90)
     plt.ylim(0, 102)
     plt.xticks(np.arange(0, 100, 10), constants.memory_sizes)
 
@@ -40,7 +40,7 @@ def plot_pre_graph (pre_mean, rec_mean, ent_mean, pre_std, rec_std, ent_std, tag
     plt.legend(loc=4)
     plt.grid(True)
 
-    entropy_labels = [str(e) for e in np.around(main_average_entropy, decimals=1)]
+    entropy_labels = [str(e) for e in np.around(ent_mean, decimals=1)]
 
     cbar = plt.colorbar(CS3, orientation='horizontal')
     cbar.set_ticks(np.arange(0, 100, 10))
@@ -50,28 +50,53 @@ def plot_pre_graph (pre_mean, rec_mean, ent_mean, pre_std, rec_std, ent_std, tag
     plt.savefig(constants.picture_filename(tag + '-graph_l4_MEAN-{0}'.format(action)), dpi=500)
 
 
+def plot_size_graph (response_size, tag):
+    plt.clf()
+
+    main_step = len(constants.memory_sizes)
+    plt.plot(np.arange(0, 100, main_step), response_size, 'g-D', label='Average number of responses')
+    plt.xlim(0, 90)
+    plt.ylim(0, 10)
+    plt.xticks(np.arange(0, 100, 10), constants.memory_sizes)
+
+    plt.xlabel('Range Quantization Levels')
+    plt.ylabel('Size')
+    plt.legend(loc=1)
+    plt.grid(True)
+
+    plt.savefig(constants.picture_filename(tag + '-graph_size_MEAN-{0}'.format(action)), dpi=500)
+
+
 def plot_behs_graph(no_response, no_correct, no_chosen, correct, tag):
+
+    for i in range(len(no_response)):
+        total = (no_response[i] + no_correct[i] + no_chosen[i] + correct[i])/100.0
+        no_response[i] /= total
+        no_correct[i] /= total
+        no_chosen[i] /= total
+        correct[i] /= total
 
     plt.clf()
     main_step = len(constants.memory_sizes)
     xlocs = np.arange(0, 100, main_step)
-    width = 0.35       # the width of the bars: can also be len(x) sequence
+    width = 5       # the width of the bars: can also be len(x) sequence
 
-    p1 = plt.bar(xlocs, correct, width)
-    p2 = plt.bar(xlocs, no_chosen, width, bottom=correct)
-    p3 = plt.bar(xlocs, no_correct, width, bottom=no_chosen)
-    p4 = plt.bar(xlocs, no_response, width, bottom=no_correct)
+    p1 = plt.bar(xlocs, correct, width, label='Correct response chosen')
+    cumm = np.array(correct)
+    p2 = plt.bar(xlocs, no_chosen,  width, bottom=cumm, label='Correct response not chosen')
+    cumm += np.array(no_chosen)
+    p3 = plt.bar(xlocs, no_correct, width, bottom=cumm, label='No correct response')
+    cumm += np.array(no_correct)
+    p4 = plt.bar(xlocs, no_response, width, bottom=cumm, label='No responses')
 
-    plt.xlim(-0.1, 91)
-    plt.ylim(0, 102)
+    plt.xlim(-5, 95)
+    plt.ylim(0, 100)
     plt.xticks(np.arange(0, 100, 10), constants.memory_sizes)
 
     plt.xlabel('Range Quantization Levels')
     plt.ylabel('Labels')
 
-    plt.legend((p4[0], p3[0], p2[0], p1[0]),\
-        ('No responses', 'No correct response', 'Correct not chosen', 'Correct chosen'))
-    plt.legend(loc=4)
+    plt.legend(loc=0)
     plt.grid(axis='y')
 
     plt.savefig(constants.picture_filename(tag + '-graph_behaviours_MEAN-{0}'.format(action)), dpi=500)
@@ -95,9 +120,9 @@ def get_label(memories, entropies = None):
     return i
 
 
-def get_ams_results(midx, msize, domain, opm, trf, tef, trl, tel):
+def get_ams_results(midx, msize, domain, lpm, trf, tef, trl, tel):
     print('Testing memory size:', msize)
-    behaviour = np.zeros((5, ))
+
     # Round the values
     max_value = trf.max()
     other_value = tef.max()
@@ -106,11 +131,19 @@ def get_ams_results(midx, msize, domain, opm, trf, tef, trl, tel):
     trf_rounded = np.round(trf * (msize - 1) / max_value).astype(np.int16)
     tef_rounded = np.round(tef * (msize - 1) / max_value).astype(np.int16)
 
-    nobjs = constants.n_labels
-    nmems = int(nobjs/opm)
+    n_labels = constants.n_labels
+    nmems = int(n_labels/lpm)
 
-    measures = np.zeros((constants.n_measures, nobjs), dtype=np.float64)
+    measures = np.zeros((constants.n_measures, nmems), dtype=np.float64)
     entropy = np.zeros((nmems, ), dtype=np.float64)
+    behaviour = np.zeros((constants.n_behaviours, ))
+
+    # Confusion matrix for calculating precision and recall per memory.
+    cms = np.zeros((nmems, 2, 2))
+    TP = (0,0)
+    FP = (0,1)
+    FN = (1,0)
+    TN = (1,1)
 
     # Create the required associative memories.
     ams = dict.fromkeys(range(nmems))
@@ -119,7 +152,7 @@ def get_ams_results(midx, msize, domain, opm, trf, tef, trl, tel):
 
     # Registration
     for features, label in zip(trf_rounded, trl):
-        i = int(label/opm)
+        i = int(label/lpm)
         ams[i].register(features)
 
     # Calculate entropies
@@ -127,69 +160,59 @@ def get_ams_results(midx, msize, domain, opm, trf, tef, trl, tel):
         entropy[j] = ams[j].entropy
 
     # Recognition
-    labels = []
-    predictions = []
-
-    remove_extra = False
-    n = 0;
     response_size = 0
+    n = len(tef_rounded)
 
     for features, label in zip(tef_rounded, tel):
-        correct = int(label/opm)
-        labels.append(correct)
-        n += 1
+        correct = int(label/lpm)
 
         memories = []
         for k in ams:
-                recognized = ams[k].recognize(features)
-                if recognized:
-                    memories.append(k)
+            recognized = ams[k].recognize(features)
 
+            # For calculation of per memory precision and recall
+            if (k == correct) and recognized:
+                cms[k][TP] += 1
+            elif k == correct:
+                cms[k][FN] += 1
+            elif recognized:
+                cms[k][FP] += 1
+            else:
+                cms[k][TN] += 1
+
+            # For calculation of behaviours, including overall precision and recall.
+            if recognized:
+                memories.append(k)
+ 
         response_size += len(memories)
         if len(memories) == 0:
-            predictions.append(len(constants.all_labels))
-            remove_extra = True
-
             # Register empty case
-            behaviour[0] += 1
+            behaviour[constants.no_response_idx] += 1
+        elif not (correct in memories):
+            behaviour[constants.no_correct_response_idx] += 1
         else:
-            # l = get_label(memories, entropy)
-            l = get_label(memories)
-
-            if correct in memories:
-                # l = label
-                if l == label:
-                    # Register entropy worked.
-                    behaviour[3] += 1
-                else:
-                    # Register entropy did not work.
-                    behaviour[2] += 1
+            l = get_label(memories, entropy)
+            if l != correct:
+                behaviour[constants.no_correct_chosen_idx] += 1
             else:
-                # Register not in remembered.
-                behaviour[1] += 1
-            
-            predictions.append(l)
+                behaviour[constants.correct_response_idx] += 1
 
-    behaviour[4] = response_size * 1.0/n
-    labels = np.array(labels)
-    predictions = np.array(predictions)
-    cm = confusion_matrix(labels, predictions)
+    behaviour[constants.mean_responses_idx] = response_size /float(len(tef_rounded))
+    all_responses = len(tef_rounded) - behaviour[constants.no_response_idx]
+    all_precision = (behaviour[constants.correct_response_idx])/float(all_responses)
+    all_recall = (behaviour[constants.correct_response_idx])/float(len(tef_rounded))
 
-    if remove_extra:
-        (m, n) = cm.shape
-        cm = np.delete(cm, m-1, 0)  
-        cm = np.delete(cm, n-1, 1)
+    behaviour[constants.precision_idx] = all_precision
+    behaviour[constants.recall_idx] = all_recall
 
-    recall = np.diag(cm) / np.sum(cm, axis = 1)
-    precision = np.diag(cm) / np.sum(cm, axis = 0)
-
-    measures[constants.precision_idx, :] = precision
-    measures[constants.recall_idx, :] = recall
-    
+    for i in range(nmems):
+        measures[constants.precision_idx,i] = cms[i][TP] /(cms[i][TP] + cms[i][FP])
+        measures[constants.recall_idx,i] = cms[i][TP] /(cms[i][TP] + cms[i][FN])
+   
     return (midx, measures, entropy, behaviour)
     
 
-def test_memories(training_features, training_labes, \
+def test_memories(training_features, training_labels, \
     testing_features, testing_labels, domain, tag, experiment):
 
     average_entropy = []
@@ -199,6 +222,9 @@ def test_memories(training_features, training_labes, \
     stdev_precision = [] 
     average_recall = []
     stdev_recall = []
+
+    all_precision = []
+    all_recall = []
 
     no_response = []
     no_correct_response = []
@@ -216,7 +242,7 @@ def test_memories(training_features, training_labes, \
 
         # An entropy value per memory size and memory.
         entropies = np.zeros((len(constants.memory_sizes), n_memories), dtype=np.float64)
-        behaviours = np.zeros((len(constants.memory_sizes), 5))
+        behaviours = np.zeros((len(constants.memory_sizes), constants.n_behaviours))
 
         print('Train the different co-domain memories -- NinM: ',experiment,' run: ',i)
         list_measures_entropies = Parallel(n_jobs=4, verbose=50)(
@@ -259,11 +285,14 @@ def test_memories(training_features, training_labes, \
         average_recall.append( recall[:, constants.mean_idx] * 100 )
         stdev_recall.append( recall[:, constants.std_idx] * 100 )
 
+        all_precision.append(behaviours[:, constants.precision_idx] * 100)
+        all_recall.append(behaviours[:, constants.recall_idx] * 100)
+
         no_response.append(behaviours[:, constants.no_response_idx])
-        no_correct_response.append(behaviours[:, constants.no_correct_responde_idx])
+        no_correct_response.append(behaviours[:, constants.no_correct_response_idx])
         no_correct_chosen.append(behaviours[:, constants.no_correct_chosen_idx])
-        correct_chosen.append(behaviours[:, constants.correct_chosen_idx])
-        total_responses.append(behaviours[:, constants.total_responses_idx])
+        correct_chosen.append(behaviours[:, constants.correct_response_idx])
+        total_responses.append(behaviours[:, constants.mean_responses_idx])
 
  
     average_precision = np.array(average_precision)
@@ -275,6 +304,14 @@ def test_memories(training_features, training_labes, \
     stdev_recall = np.array(stdev_recall)
     main_average_recall = []
     main_stdev_recall = []
+
+    all_precision = np.array(all_precision)
+    main_all_average_precision = []
+    main_all_stdev_precision = []
+
+    all_recall = np.array(all_recall)
+    main_all_average_recall = []
+    main_all_stdev_recall = []
 
     average_entropy=np.array(average_entropy)
     stdev_entropy=np.array(stdev_entropy)
@@ -303,6 +340,11 @@ def test_memories(training_features, training_labes, \
         main_stdev_recall.append( stdev_recall[:,i].mean() )
         main_stdev_entropy.append( stdev_entropy[:,i].mean() )
 
+        main_all_average_precision.append(all_precision[:, i].mean())
+        main_all_stdev_precision.append(all_precision[:, i].std())
+        main_all_average_recall.append(all_recall[:, i].mean())
+        main_all_stdev_recall.append(all_recall[:, i].std())
+
         main_no_response.append(no_response[:, i].mean())
         main_no_correct_response.append(no_correct_response[:, i].mean())
         main_no_correct_chosen.append(no_correct_chosen[:, i].mean())
@@ -314,15 +356,23 @@ def test_memories(training_features, training_labes, \
 
     np.savetxt(constants.csv_filename(tag + '-main_average_precision--{0}'.format(action)), \
         main_average_precision, delimiter=',')
+    np.savetxt(constants.csv_filename(tag + '-main_all_average_precision--{0}'.format(action)), \
+        main_all_average_precision, delimiter=',')
     np.savetxt(constants.csv_filename(tag + '-main_average_recall--{0}'.format(action)), \
         main_average_recall, delimiter=',')
+    np.savetxt(constants.csv_filename(tag + '-main_all_average_recall--{0}'.format(action)), \
+        main_all_average_recall, delimiter=',')
     np.savetxt(constants.csv_filename(tag + '-main_average_entropy--{0}'.format(action)), \
         main_average_entropy, delimiter=',')
 
     np.savetxt(constants.csv_filename(tag + '-main_stdev_precision--{0}'.format(action)), \
         main_stdev_precision, delimiter=',')
+    np.savetxt(constants.csv_filename(tag + '-main_all_stdev_precision--{0}'.format(action)), \
+        main_all_stdev_precision, delimiter=',')
     np.savetxt(constants.csv_filename(tag + '-main_stdev_recall--{0}'.format(action)), \
         main_stdev_recall, delimiter=',')
+    np.savetxt(constants.csv_filename(tag + '-main_all_stdev_recall--{0}'.format(action)), \
+        main_all_stdev_recall, delimiter=',')
     np.savetxt(constants.csv_filename(tag + '-main_stdev_entropy--{0}'.format(action)), \
         main_stdev_entropy, delimiter=',')
 
@@ -332,7 +382,14 @@ def test_memories(training_features, training_labes, \
     plot_pre_graph(main_average_precision, main_average_recall, main_average_entropy,\
         main_stdev_precision, main_stdev_recall, main_stdev_entropy, tag)
 
-    plot_behs_graph(main_behaviours)
+    plot_pre_graph(main_all_average_precision, main_all_average_recall, \
+        main_average_entropy, main_all_stdev_precision, main_all_stdev_recall,\
+            main_stdev_entropy, tag+'-all')
+
+    plot_size_graph(main_total_responses, tag)
+
+    plot_behs_graph(main_no_response, main_no_correct_response, main_no_correct_chosen,\
+        main_correct_chosen, tag)
 
     print('Test complete')
 
