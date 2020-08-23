@@ -7,7 +7,6 @@ from joblib import Parallel, delayed
 from matplotlib import cm
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from sklearn.metrics import confusion_matrix
 import random
 
 import constants
@@ -123,6 +122,8 @@ def get_label(memories, entropies = None):
 def get_ams_results(midx, msize, domain, lpm, trf, tef, trl, tel):
     print('Testing memory size:', msize)
 
+
+    print('----------------------------- Domain size:', domain)
     # Round the values
     max_value = trf.max()
     other_value = tef.max()
@@ -235,10 +236,10 @@ def test_memories(training_features, training_labels, \
     for i in range(constants.n_memory_tests):
         gc.collect()
 
-        measures_per_size = np.zeros((len(constants.memory_sizes), constants.n_labels, constants.n_measures), dtype=np.float64)
-        
         lpm = constants.labels_per_memory[experiment]
         n_memories = int(constants.n_labels/lpm)
+        measures_per_size = np.zeros((len(constants.memory_sizes), n_memories, constants.n_measures), dtype=np.float64)
+        
 
         # An entropy value per memory size and memory.
         entropies = np.zeros((len(constants.memory_sizes), n_memories), dtype=np.float64)
@@ -258,16 +259,16 @@ def test_memories(training_features, training_labels, \
 
         # Calculate precision and recall
 
-        precision = np.zeros((len(constants.memory_sizes), constants.n_labels+2), dtype=np.float64)
-        recall = np.zeros((len(constants.memory_sizes), constants.n_labels+2), dtype=np.float64)
+        precision = np.zeros((len(constants.memory_sizes), n_memories+2), dtype=np.float64)
+        recall = np.zeros((len(constants.memory_sizes), n_memories+2), dtype=np.float64)
 
         for j, s in enumerate(constants.memory_sizes):
-            precision[j, 0:10] = measures_per_size[j, : , constants.precision_idx]
-            precision[j, constants.mean_idx] = measures_per_size[j, : , constants.precision_idx].mean()
-            precision[j, constants.std_idx] = measures_per_size[j, : , constants.precision_idx].std()
-            recall[j, 0:10] = measures_per_size[j, : , constants.recall_idx]
-            recall[j, constants.mean_idx] = measures_per_size[j, : , constants.recall_idx].mean()
-            recall[j, constants.std_idx] = measures_per_size[j, : , constants.recall_idx].std()
+            precision[j, 0:n_memories] = measures_per_size[j, : , constants.precision_idx]
+            precision[j, constants.mean_idx(n_memories)] = measures_per_size[j, : , constants.precision_idx].mean()
+            precision[j, constants.std_idx(n_memories)] = measures_per_size[j, : , constants.precision_idx].std()
+            recall[j, 0:n_memories] = measures_per_size[j, : , constants.recall_idx]
+            recall[j, constants.mean_idx(n_memories)] = measures_per_size[j, : , constants.recall_idx].mean()
+            recall[j, constants.std_idx(n_memories)] = measures_per_size[j, : , constants.recall_idx].std()
         
 
         ###################################################################3##
@@ -278,12 +279,12 @@ def test_memories(training_features, training_labels, \
         stdev_entropy.append( entropies.std(axis=1) )
 
         # Average precision as percentage
-        average_precision.append( precision[:, constants.mean_idx] * 100 )
-        stdev_precision.append( precision[:, constants.std_idx] * 100 )
+        average_precision.append( precision[:, constants.mean_idx(n_memories)] * 100 )
+        stdev_precision.append( precision[:, constants.std_idx(n_memories)] * 100 )
 
         # Average recall as percentage
-        average_recall.append( recall[:, constants.mean_idx] * 100 )
-        stdev_recall.append( recall[:, constants.std_idx] * 100 )
+        average_recall.append( recall[:, constants.mean_idx(n_memories)] * 100 )
+        stdev_recall.append( recall[:, constants.std_idx(n_memories)] * 100 )
 
         all_precision.append(behaviours[:, constants.precision_idx] * 100)
         all_recall.append(behaviours[:, constants.recall_idx] * 100)
@@ -426,6 +427,8 @@ def main(action):
 
         training_features = np.load(constants.train_features_conv2d_filename)
         testing_features = np.load(constants.test_features_conv2d_filename)
+
+        print('Features shape: ', training_features.shape, testing_features.shape)
         domain = constants.conv2d_domain
         tag = constants.conv2d_tag
 

@@ -43,7 +43,7 @@ test_features_conv2d_filename = filename('test_conv2d-features.npy')
 train_labels_filename = filename('train-labels.npy')
 test_labels_filename = filename('test-labels.npy')
 
-dense_domain = 512
+dense_domain = 256
 conv2d_domain = 512
 
 dense_tag = 'dense'
@@ -58,8 +58,11 @@ all_labels = list(range(n_labels))
 precision_idx = 0
 recall_idx = 1
 n_measures = 2
-mean_idx = 10
-std_idx = 11
+def mean_idx(m):
+    return m
+
+def std_idx(m):
+    return m+1
 
 no_response_idx = 2
 no_correct_response_idx = 3

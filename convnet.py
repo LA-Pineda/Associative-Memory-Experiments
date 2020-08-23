@@ -49,7 +49,7 @@ def train_network():
     model.add(tf.keras.layers.MaxPooling2D((2, 2)))
     model.add(tf.keras.layers.Flatten())
     model.add(tf.keras.layers.Dropout(0.2))
-    model.add(tf.keras.layers.Dense(512, activation='relu'))
+    model.add(tf.keras.layers.Dense(256, activation='relu'))
     model.add(tf.keras.layers.Dropout(0.5)),
     model.add(tf.keras.layers.Dense(10, activation='softmax'))
     
@@ -71,7 +71,7 @@ def train_network():
     model.save(constants.full_model_filename)
 
 
-def obtain_features():
+def obtain_features(tr_filename, te_filename, model_filename, pops):
 
     (train_images, train_labels), (test_images, test_labels) = get_data()
 
@@ -79,34 +79,16 @@ def obtain_features():
     model = tf.keras.models.load_model(constants.full_model_filename)
 
     # Drop the last two layers of the full connected neural network part.
-    model.pop() # Dense (10)
-    model.pop() # Dropout 
+    for i in range(pops):
+	model.pop()
     model.summary()
 
-    # 'Do not specify the batch_size if your data is in the form of dataset...
-    # (since they generate batches).
     features = model.predict(train_images, batch_size=100)
-    np.save(constants.train_features_dense_filename, features)
+    np.save(tr_filename, features)
     
     features = model.predict(test_images)
-    np.save(constants.test_features_dense_filename, features)
+    np.save(te_filename, features)
 
     # Save model with a Dense layer as the last one.
-    model.save(constants.features_model_dense_filename)
+    model.save(model_filename)
 
-    # Remove the last Dense layer, so the network becomes a convolutional only.
-    model.pop() # Dense
-    model.summary()
-
-    features = model.predict(train_images, batch_size=100)
-    np.save(constants.train_features_conv2d_filename, features)
-    
-    features = model.predict(test_images)
-    np.save(constants.test_features_conv2d_filename, features)
-
-    # Save the convolutional model.
-    model.save(constants.features_model_conv2d_filename)
-
-    # Save the labels for al cases.
-    np.save(constants.train_labels_filename, train_labels)
-    np.save(constants.test_labels_filename, test_labels)
