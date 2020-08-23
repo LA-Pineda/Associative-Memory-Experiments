@@ -19,6 +19,64 @@ def print_error(*s):
     print('Error:', *s, file = sys.stderr)
 
 
+def plot_pre_graph (pre_mean, rec_mean, ent_mean, pre_std, rec_std, ent_std, tag):
+    cmap = mpl.colors.LinearSegmentedColormap.from_list('mycolors',['cyan','purple'])
+    Z = [[0,0],[0,0]]
+    step = 0.1
+    levels = np.arange(0.0, 90 + step, step)
+    CS3 = plt.contourf(Z, levels, cmap=cmap)
+
+    plt.clf()
+
+    main_step = len(constants.memory_sizes)
+    plt.plot(np.arange(0, 100, main_step), pre_mean, 'r-o', label='Precision')
+    plt.plot(np.arange(0, 100, main_step), rec_mean, 'b-s', label='Recall')
+    plt.xlim(-0.1, 91)
+    plt.ylim(0, 102)
+    plt.xticks(np.arange(0, 100, 10), constants.memory_sizes)
+
+    plt.xlabel('Range Quantization Levels')
+    plt.ylabel('Percentage [%]')
+    plt.legend(loc=4)
+    plt.grid(True)
+
+    entropy_labels = [str(e) for e in np.around(main_average_entropy, decimals=1)]
+
+    cbar = plt.colorbar(CS3, orientation='horizontal')
+    cbar.set_ticks(np.arange(0, 100, 10))
+    cbar.ax.set_xticklabels(entropy_labels)
+    cbar.set_label('Entropy')
+
+    plt.savefig(constants.picture_filename(tag + '-graph_l4_MEAN-{0}'.format(action)), dpi=500)
+
+
+def plot_behs_graph(no_response, no_correct, no_chosen, correct, tag):
+
+    plt.clf()
+    main_step = len(constants.memory_sizes)
+    xlocs = np.arange(0, 100, main_step)
+    width = 0.35       # the width of the bars: can also be len(x) sequence
+
+    p1 = plt.bar(xlocs, correct, width)
+    p2 = plt.bar(xlocs, no_chosen, width, bottom=correct)
+    p3 = plt.bar(xlocs, no_correct, width, bottom=no_chosen)
+    p4 = plt.bar(xlocs, no_response, width, bottom=no_correct)
+
+    plt.xlim(-0.1, 91)
+    plt.ylim(0, 102)
+    plt.xticks(np.arange(0, 100, 10), constants.memory_sizes)
+
+    plt.xlabel('Range Quantization Levels')
+    plt.ylabel('Labels')
+
+    plt.legend((p4[0], p3[0], p2[0], p1[0]),\
+        ('No responses', 'No correct response', 'Correct not chosen', 'Correct chosen'))
+    plt.legend(loc=4)
+    plt.grid(axis='y')
+
+    plt.savefig(constants.picture_filename(tag + '-graph_behaviours_MEAN-{0}'.format(action)), dpi=500)
+
+
 def get_label(memories, entropies = None):
 
     # Random selection
@@ -136,16 +194,20 @@ def test_memories(training_features, training_labes, \
 
     average_entropy = []
     stdev_entropy = []
+
     average_precision = []
     stdev_precision = [] 
     average_recall = []
     stdev_recall = []
 
-    behaviours = np.zeros((len(constants.memory_sizes), 5))
+    no_response = []
+    no_correct_response = []
+    no_correct_chosen = []
+    correct_chosen = []
+    total_responses = []
 
     for i in range(constants.n_memory_tests):
         gc.collect()
-
 
         measures_per_size = np.zeros((len(constants.memory_sizes), constants.n_labels, constants.n_measures), dtype=np.float64)
         
@@ -154,6 +216,7 @@ def test_memories(training_features, training_labes, \
 
         # An entropy value per memory size and memory.
         entropies = np.zeros((len(constants.memory_sizes), n_memories), dtype=np.float64)
+        behaviours = np.zeros((len(constants.memory_sizes), 5))
 
         print('Train the different co-domain memories -- NinM: ',experiment,' run: ',i)
         list_measures_entropies = Parallel(n_jobs=4, verbose=50)(
@@ -169,16 +232,16 @@ def test_memories(training_features, training_labes, \
 
         # Calculate precision and recall
 
-        precision = np.zeros((len(constants.memory_sizes), 12, 1), dtype=np.float64)
-        recall = np.zeros((len(constants.memory_sizes), 12, 1), dtype=np.float64)
+        precision = np.zeros((len(constants.memory_sizes), constants.n_labels+2), dtype=np.float64)
+        recall = np.zeros((len(constants.memory_sizes), constants.n_labels+2), dtype=np.float64)
 
         for j, s in enumerate(constants.memory_sizes):
-            precision[j, 0:10, 0] = measures_per_size[j, : , constants.precision_idx]
-            precision[j, constants.mean_idx, 0] = measures_per_size[j, : , constants.precision_idx].mean()
-            precision[j, constants.std_idx, 0] = measures_per_size[j, : , constants.precision_idx].std()
-            recall[j, 0:10, 0] = measures_per_size[j, : , constants.recall_idx]
-            recall[j, constants.mean_idx, 0] = measures_per_size[j, : , constants.recall_idx].mean()
-            recall[j, constants.std_idx, 0] = measures_per_size[j, : , constants.recall_idx].std()
+            precision[j, 0:10] = measures_per_size[j, : , constants.precision_idx]
+            precision[j, constants.mean_idx] = measures_per_size[j, : , constants.precision_idx].mean()
+            precision[j, constants.std_idx] = measures_per_size[j, : , constants.precision_idx].std()
+            recall[j, 0:10] = measures_per_size[j, : , constants.recall_idx]
+            recall[j, constants.mean_idx] = measures_per_size[j, : , constants.recall_idx].mean()
+            recall[j, constants.std_idx] = measures_per_size[j, : , constants.recall_idx].std()
         
 
         ###################################################################3##
@@ -189,106 +252,88 @@ def test_memories(training_features, training_labes, \
         stdev_entropy.append( entropies.std(axis=1) )
 
         # Average precision as percentage
-        average_precision.append( precision[:, constants.mean_idx, :] * 100 )
-        stdev_precision.append( precision[:, constants.std_idx, :] * 100 )
+        average_precision.append( precision[:, constants.mean_idx] * 100 )
+        stdev_precision.append( precision[:, constants.std_idx] * 100 )
 
         # Average recall as percentage
-        average_recall.append( recall[:, constants.mean_idx, :] * 100 )
-        stdev_recall.append( recall[:, constants.std_idx, :] * 100 )
-        
-        # Plot of precision and recall with entropies
+        average_recall.append( recall[:, constants.mean_idx] * 100 )
+        stdev_recall.append( recall[:, constants.std_idx] * 100 )
 
-        print('Plot of precision and recall with entropies-----{0}'.format(i))
+        no_response.append(behaviours[:, constants.no_response_idx])
+        no_correct_response.append(behaviours[:, constants.no_correct_responde_idx])
+        no_correct_chosen.append(behaviours[:, constants.no_correct_chosen_idx])
+        correct_chosen.append(behaviours[:, constants.correct_chosen_idx])
+        total_responses.append(behaviours[:, constants.total_responses_idx])
 
-        # Setting up a colormap that's a simple transition
-        cmap = mpl.colors.LinearSegmentedColormap.from_list('mycolors',['cyan','purple'])
-
-        # Using contourf to provide my colorbar info, then clearing the figure
-        Z = [[0,0],[0,0]]
-        step = 0.1
-        levels = np.arange(0.0, 90 + step, step)
-        CS3 = plt.contourf(Z, levels, cmap=cmap)
-
-        plt.clf()
-
-
-        plt.plot(np.arange(0, 100, len(constants.memory_sizes)), average_precision[i], 'r-o', label='Precision')
-        plt.plot(np.arange(0, 100, len(constants.memory_sizes)), average_recall[i], 'b-s', label='Recall')
-        plt.xlim(-0.1, 91)
-        plt.ylim(0, 102)
-        plt.xticks(np.arange(0, 100, 10), constants.memory_sizes)
-
-        plt.xlabel('Range Quantization Levels')
-        plt.ylabel('Percentage [%]')
-        plt.legend(loc=4)
-        plt.grid(True)
-
-        entropy_labels = [str(e) for e in np.around(average_entropy[i], decimals=1)]
-
-        cbar = plt.colorbar(CS3, orientation='horizontal')
-        cbar.set_ticks(np.arange(0, 100, 10))
-        cbar.ax.set_xticklabels(entropy_labels)
-        cbar.set_label('Entropy')
-
-        plt.savefig(constants.picture_filename('graph_l4_{0}_{1}'.format(experiment,i)), dpi=500)
-        print('Iteration {0} complete'.format(i))
-        #Uncomment the following line for plot at runtime
-        plt.show()
-
-
-    ######################
-    # Plot the final graph
-
-    average_precision=np.array(average_precision)
-    main_average_precision=[]
+ 
+    average_precision = np.array(average_precision)
+    stdev_precision = np.array(stdev_precision)
+    main_average_precision =[]
+    main_stdev_precision = []
 
     average_recall=np.array(average_recall)
-    main_average_recall=[]
+    stdev_recall = np.array(stdev_recall)
+    main_average_recall = []
+    main_stdev_recall = []
 
     average_entropy=np.array(average_entropy)
+    stdev_entropy=np.array(stdev_entropy)
     main_average_entropy=[]
+    main_stdev_entropy=[]
 
-    for i in range(10):
+    no_response = np.array(no_response)
+    no_correct_response = np.array(no_correct_response)
+    no_correct_chosen = np.array(no_correct_chosen)
+    correct_chosen = np.array(correct_chosen)
+    total_responses = np.array(total_responses)
+
+    main_no_response = []
+    main_no_correct_response = []
+    main_no_correct_chosen = []
+    main_correct_chosen = []
+    main_total_responses = []
+
+
+    for i in range(len(constants.memory_sizes)):
         main_average_precision.append( average_precision[:,i].mean() )
         main_average_recall.append( average_recall[:,i].mean() )
         main_average_entropy.append( average_entropy[:,i].mean() )
-        
-    print('main avg precision: ',main_average_precision)
-    print('main avg recall: ',main_average_recall)
-    print('main avg entropy: ',main_average_entropy)
 
-    np.savetxt(constants.csv_filename('main_average_precision--{0}'.format(action)), main_average_precision, delimiter=',')
-    np.savetxt(constants.csv_filename('main_average_recall--{0}'.format(action)), main_average_recall, delimiter=',')
-    np.savetxt(constants.csv_filename('main_average_entropy--{0}'.format(action)), main_average_entropy, delimiter=',')
+        main_stdev_precision.append( stdev_precision[:,i].mean() )
+        main_stdev_recall.append( stdev_recall[:,i].mean() )
+        main_stdev_entropy.append( stdev_entropy[:,i].mean() )
 
-    np.savetxt(constants.csv_filename('behaviours'), behaviours, delimiter=',')
-    cmap = mpl.colors.LinearSegmentedColormap.from_list('mycolors',['cyan','purple'])
-    Z = [[0,0],[0,0]]
-    step = 0.1
-    levels = np.arange(0.0, 90 + step, step)
-    CS3 = plt.contourf(Z, levels, cmap=cmap)
+        main_no_response.append(no_response[:, i].mean())
+        main_no_correct_response.append(no_correct_response[:, i].mean())
+        main_no_correct_chosen.append(no_correct_chosen[:, i].mean())
+        main_correct_chosen.append(correct_chosen[:, i].mean())
+        main_total_responses.append(total_responses[:, i].mean())
 
-    plt.clf()
+    main_behaviours = [main_no_response, main_no_correct_response, \
+        main_no_correct_chosen, main_correct_chosen, main_total_responses]
 
-    plt.plot(np.arange(0, 100, 10), main_average_precision, 'r-o', label='Precision')
-    plt.plot(np.arange(0, 100, 10), main_average_recall, 'b-s', label='Recall')
-    plt.xlim(-0.1, 91)
-    plt.ylim(0, 102)
-    plt.xticks(np.arange(0, 100, 10), constants.memory_sizes)
+    np.savetxt(constants.csv_filename(tag + '-main_average_precision--{0}'.format(action)), \
+        main_average_precision, delimiter=',')
+    np.savetxt(constants.csv_filename(tag + '-main_average_recall--{0}'.format(action)), \
+        main_average_recall, delimiter=',')
+    np.savetxt(constants.csv_filename(tag + '-main_average_entropy--{0}'.format(action)), \
+        main_average_entropy, delimiter=',')
 
-    plt.xlabel('Range Quantization Levels')
-    plt.ylabel('Percentage [%]')
-    plt.legend(loc=4)
-    plt.grid(True)
+    np.savetxt(constants.csv_filename(tag + '-main_stdev_precision--{0}'.format(action)), \
+        main_stdev_precision, delimiter=',')
+    np.savetxt(constants.csv_filename(tag + '-main_stdev_recall--{0}'.format(action)), \
+        main_stdev_recall, delimiter=',')
+    np.savetxt(constants.csv_filename(tag + '-main_stdev_entropy--{0}'.format(action)), \
+        main_stdev_entropy, delimiter=',')
 
-    entropy_labels = [str(e) for e in np.around(main_average_entropy, decimals=1)]
+    np.savetxt(constants.csv_filename(tag + '-main_behaviours--{0}'.format(action)), \
+        main_behaviours, delimiter=',')
 
-    cbar = plt.colorbar(CS3, orientation='horizontal')
-    cbar.set_ticks(np.arange(0, 100, 10))
-    cbar.ax.set_xticklabels(entropy_labels)
-    cbar.set_label('Entropy')
+    plot_pre_graph(main_average_precision, main_average_recall, main_average_entropy,\
+        main_stdev_precision, main_stdev_recall, main_stdev_entropy, tag)
 
-    plt.savefig(constants.picture_filename('graph_l4_MEAN-{0}'.format(action)), dpi=500)
+    plot_behs_graph(main_behaviours)
+
     print('Test complete')
 
 
