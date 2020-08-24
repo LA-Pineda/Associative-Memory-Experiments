@@ -80,7 +80,7 @@ def obtain_features(tr_filename, te_filename, model_filename, pops):
 
     # Drop the last two layers of the full connected neural network part.
     for i in range(pops):
-	model.pop()
+        model.pop()
     model.summary()
 
     features = model.predict(train_images, batch_size=100)
@@ -88,6 +88,9 @@ def obtain_features(tr_filename, te_filename, model_filename, pops):
     
     features = model.predict(test_images)
     np.save(te_filename, features)
+
+    np.save(constants.train_labels_filename, train_labels)
+    np.save(constants.test_labels_filename, test_labels)
 
     # Save model with a Dense layer as the last one.
     model.save(model_filename)

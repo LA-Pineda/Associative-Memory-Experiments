@@ -410,7 +410,10 @@ def main(action):
         convnet.train_network()
     elif action == GET_FEATURES:
         # Generates features for the data sections using the previously generate neural network
-        convnet.obtain_features()
+        convnet.obtain_features(constants.train_features_dense_filename, \
+            constants.test_features_dense_filename, constants.features_model_dense_filename, 2)
+        convnet.obtain_features(constants.train_features_conv2d_filename, \
+            constants.test_features_conv2d_filename, constants.features_model_conv2d_filename, 3)
     else:
         training_labels = np.load(constants.train_labels_filename)
         testing_labels = np.load(constants.test_labels_filename)
