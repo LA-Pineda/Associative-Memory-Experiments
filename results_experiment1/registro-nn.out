@@ -1,0 +1,123 @@
+Script started on mar 25 ago 2020 14:02:13 CDT
+2020-08-25 14:02:28.540638: I tensorflow/core/platform/cpu_feature_guard.cc:143] Your CPU supports instructions that this TensorFlow binary was not compiled to use: SSE4.1 SSE4.2 AVX AVX2 FMA
+2020-08-25 14:02:28.562783: I tensorflow/core/platform/profile_utils/cpu_utils.cc:102] CPU Frequency: 3408000000 Hz
+2020-08-25 14:02:28.563064: I tensorflow/compiler/xla/service/service.cc:168] XLA service 0x556d337786e0 initialized for platform Host (this does not guarantee that XLA will be used). Devices:
+2020-08-25 14:02:28.563077: I tensorflow/compiler/xla/service/service.cc:176]   StreamExecutor device (0): Host, Default Version
+2020-08-25 14:02:28.563135: I tensorflow/core/common_runtime/process_util.cc:147] Creating new thread pool with default inter op setting: 2. Tune using inter_op_parallelism_threads for best performance.
+Epoch 1/5
+350/350 - 21s - loss: 0.4869 - accuracy: 0.8403
+Epoch 2/5
+350/350 - 21s - loss: 0.1715 - accuracy: 0.9483
+Epoch 3/5
+350/350 - 21s - loss: 0.1340 - accuracy: 0.9607
+Epoch 4/5
+350/350 - 20s - loss: 0.1203 - accuracy: 0.9647
+Epoch 5/5
+350/350 - 20s - loss: 0.1092 - accuracy: 0.9693
+Model 0 test accuracy: 0.9798571467399597
+2020-08-25 14:04:17.317340: W tensorflow/python/util/util.cc:329] Sets are not currently considered sequences, but this may change in the future, so consider avoiding using them.
+WARNING:tensorflow:From /home/rafaelm/anaconda3/envs/ame/lib/python3.8/site-packages/tensorflow/python/ops/resource_variable_ops.py:1813: calling BaseResourceVariable.__init__ (from tensorflow.python.ops.resource_variable_ops) with constraint is deprecated and will be removed in a future version.
+Instructions for updating:
+If using Keras pass *_constraint arguments to layers.
+Epoch 1/5
+350/350 - 21s - loss: 0.5056 - accuracy: 0.8327
+Epoch 2/5
+350/350 - 22s - loss: 0.1800 - accuracy: 0.9465
+Epoch 3/5
+350/350 - 24s - loss: 0.1449 - accuracy: 0.9587
+Epoch 4/5
+350/350 - 25s - loss: 0.1272 - accuracy: 0.9639
+Epoch 5/5
+350/350 - 24s - loss: 0.1164 - accuracy: 0.9685
+Model 7000 test accuracy: 0.9841428399085999
+Epoch 1/5
+350/350 - 20s - loss: 0.5240 - accuracy: 0.8291
+Epoch 2/5
+350/350 - 21s - loss: 0.1918 - accuracy: 0.9433
+Epoch 3/5
+350/350 - 19s - loss: 0.1482 - accuracy: 0.9579
+Epoch 4/5
+350/350 - 20s - loss: 0.1290 - accuracy: 0.9636
+Epoch 5/5
+350/350 - 20s - loss: 0.1090 - accuracy: 0.9705
+Model 14000 test accuracy: 0.9802571535110474
+Epoch 1/5
+350/350 - 23s - loss: 0.4990 - accuracy: 0.8339
+Epoch 2/5
+350/350 - 19s - loss: 0.1737 - accuracy: 0.9476
+Epoch 3/5
+350/350 - 21s - loss: 0.1305 - accuracy: 0.9605
+Epoch 4/5
+350/350 - 19s - loss: 0.1073 - accuracy: 0.9690
+Epoch 5/5
+350/350 - 23s - loss: 0.1016 - accuracy: 0.9716
+Model 21000 test accuracy: 0.9833142757415771
+Epoch 1/5
+350/350 - 21s - loss: 0.5448 - accuracy: 0.8213
+Epoch 2/5
+350/350 - 20s - loss: 0.2054 - accuracy: 0.9384
+Epoch 3/5
+350/350 - 20s - loss: 0.1640 - accuracy: 0.9515
+Epoch 4/5
+350/350 - 20s - loss: 0.1379 - accuracy: 0.9599
+Epoch 5/5
+350/350 - 21s - loss: 0.1257 - accuracy: 0.9654
+Model 28000 test accuracy: 0.9814857244491577
+Epoch 1/5
+350/350 - 22s - loss: 0.5449 - accuracy: 0.8216
+Epoch 2/5
+350/350 - 22s - loss: 0.2018 - accuracy: 0.9392
+Epoch 3/5
+350/350 - 21s - loss: 0.1638 - accuracy: 0.9524
+Epoch 4/5
+350/350 - 19s - loss: 0.1475 - accuracy: 0.9597
+Epoch 5/5
+350/350 - 20s - loss: 0.1503 - accuracy: 0.9621
+Model 35000 test accuracy: 0.9813714027404785
+Epoch 1/5
+350/350 - 20s - loss: 0.5637 - accuracy: 0.8130
+Epoch 2/5
+350/350 - 20s - loss: 0.1964 - accuracy: 0.9401
+Epoch 3/5
+350/350 - 19s - loss: 0.1520 - accuracy: 0.9546
+Epoch 4/5
+350/350 - 21s - loss: 0.1384 - accuracy: 0.9617
+Epoch 5/5
+350/350 - 20s - loss: 0.1190 - accuracy: 0.9663
+Model 42000 test accuracy: 0.9833428859710693
+Epoch 1/5
+350/350 - 21s - loss: 0.5384 - accuracy: 0.8196
+Epoch 2/5
+350/350 - 20s - loss: 0.1986 - accuracy: 0.9409
+Epoch 3/5
+350/350 - 23s - loss: 0.1551 - accuracy: 0.9544
+Epoch 4/5
+350/350 - 23s - loss: 0.1331 - accuracy: 0.9614
+Epoch 5/5
+350/350 - 25s - loss: 0.1198 - accuracy: 0.9672
+Model 49000 test accuracy: 0.9862285852432251
+Epoch 1/5
+350/350 - 20s - loss: 0.5225 - accuracy: 0.8269
+Epoch 2/5
+350/350 - 20s - loss: 0.1968 - accuracy: 0.9412
+Epoch 3/5
+350/350 - 20s - loss: 0.1545 - accuracy: 0.9542
+Epoch 4/5
+350/350 - 21s - loss: 0.1357 - accuracy: 0.9610
+Epoch 5/5
+350/350 - 20s - loss: 0.1226 - accuracy: 0.9661
+Model 56000 test accuracy: 0.9834285974502563
+Epoch 1/5
+350/350 - 19s - loss: 0.5101 - accuracy: 0.8331
+Epoch 2/5
+350/350 - 20s - loss: 0.1872 - accuracy: 0.9442
+Epoch 3/5
+350/350 - 21s - loss: 0.1496 - accuracy: 0.9554
+Epoch 4/5
+350/350 - 18s - loss: 0.1207 - accuracy: 0.9645
+Epoch 5/5
+350/350 - 20s - loss: 0.1166 - accuracy: 0.9679
+Model 63000 test accuracy: 0.984257161617279
+exit
+
+Script done on mar 25 ago 2020 14:27:32 CDT
