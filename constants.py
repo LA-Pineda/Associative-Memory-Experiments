@@ -30,25 +30,29 @@ def picture_filename(s, i = None):
 
 
 # Models (neural networks).
-full_model_filename = filename('full_model')
-features_model_dense_filename = filename('features_dense-model')
-features_model_conv2d_filename = filename('features_conv2d-model')
+full_model_filename = 'full_model'
+
+def model_filename(n):
+    return filename(full_model_filename, n)
+
 
 # Features and labels.
-train_features_dense_filename = filename('train_dense-features.npy')
-train_features_conv2d_filename = filename('train_conv2d-features.npy')
-test_features_dense_filename = filename('test_dense-features.npy')
-test_features_conv2d_filename = filename('test_conv2d-features.npy')
+features_dense_filename = filename('dense-features.npy')
+features_conv2d_filename = filename('conv2d-features.npy')
 
-train_labels_filename = filename('train-labels.npy')
-test_labels_filename = filename('test-labels.npy')
+labels_filename = filename('labels.npy')
 
-dense_domain = 256
+training_stages = 10
+nn_training_percent = 0.50 # 50 percent
+am_training_percent = 25.0/70.0 # aprox. 36 percent
+
+dense_domain = 512
 conv2d_domain = 512
 
 dense_tag = 'dense'
 conv2d_tag = 'conv2d'
 
+n_jobs = 4
 n_memory_tests = 1
 n_labels = 10
 labels_per_memory = [0, 1, 2]
@@ -73,3 +77,4 @@ mean_responses_idx = 6
 n_behaviours = 7
 
 memory_sizes = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
+

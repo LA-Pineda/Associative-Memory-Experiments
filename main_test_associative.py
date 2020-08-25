@@ -246,7 +246,7 @@ def test_memories(training_features, training_labels, \
         behaviours = np.zeros((len(constants.memory_sizes), constants.n_behaviours))
 
         print('Train the different co-domain memories -- NinM: ',experiment,' run: ',i)
-        list_measures_entropies = Parallel(n_jobs=4, verbose=50)(
+        list_measures_entropies = Parallel(n_jobs=constants.n_jobs, verbose=50)(
             delayed(get_ams_results)(midx, msize, domain, lpm, training_features, testing_features, training_labels, testing_labels) for midx, msize in enumerate(constants.memory_sizes))
 
         for j, measures, entropy, behaviour in list_measures_entropies:
@@ -410,10 +410,8 @@ def main(action):
         convnet.train_network()
     elif action == GET_FEATURES:
         # Generates features for the data sections using the previously generate neural network
-        convnet.obtain_features(constants.train_features_dense_filename, \
-            constants.test_features_dense_filename, constants.features_model_dense_filename, 2)
-        convnet.obtain_features(constants.train_features_conv2d_filename, \
-            constants.test_features_conv2d_filename, constants.features_model_conv2d_filename, 3)
+        convnet.obtain_features(constants.features_dense_filename, constants.labels_filename, 2)
+        convnet.obtain_features(constants.features_conv2d_filename, constants.labels_filename, 3)
     else:
         training_labels = np.load(constants.train_labels_filename)
         testing_labels = np.load(constants.test_labels_filename)
