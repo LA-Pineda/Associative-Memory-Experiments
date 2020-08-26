@@ -18,7 +18,7 @@ def print_error(*s):
     print('Error:', *s, file = sys.stderr)
 
 
-def plot_pre_graph (pre_mean, rec_mean, ent_mean, pre_std, rec_std, ent_std):
+def plot_pre_graph (pre_mean, rec_mean, ent_mean, pre_std, rec_std, ent_std, tag=''):
     cmap = mpl.colors.LinearSegmentedColormap.from_list('mycolors',['cyan','purple'])
     Z = [[0,0],[0,0]]
     step = 0.1
@@ -46,7 +46,7 @@ def plot_pre_graph (pre_mean, rec_mean, ent_mean, pre_std, rec_std, ent_std):
     cbar.ax.set_xticklabels(entropy_labels)
     cbar.set_label('Entropy')
 
-    plt.savefig(constants.picture_filename('graph_l4_MEAN-{0}'.format(action)), dpi=500)
+    plt.savefig(constants.picture_filename(tag + 'graph_l4_MEAN-{0}'.format(action)), dpi=500)
 
 
 def plot_size_graph (response_size):
@@ -399,7 +399,7 @@ def test_memories(domain, experiment):
 
     plot_pre_graph(main_all_average_precision, main_all_average_recall, \
         main_average_entropy, main_all_stdev_precision, main_all_stdev_recall,\
-            main_stdev_entropy)
+            main_stdev_entropy, 'overall')
 
     plot_size_graph(main_total_responses)
 
