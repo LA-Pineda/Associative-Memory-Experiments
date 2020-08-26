@@ -46,7 +46,7 @@ def plot_pre_graph (pre_mean, rec_mean, ent_mean, pre_std, rec_std, ent_std):
     cbar.ax.set_xticklabels(entropy_labels)
     cbar.set_label('Entropy')
 
-    plt.savefig(constants.picture_filename('-graph_l4_MEAN-{0}'.format(action)), dpi=500)
+    plt.savefig(constants.picture_filename('graph_l4_MEAN-{0}'.format(action)), dpi=500)
 
 
 def plot_size_graph (response_size):
@@ -63,7 +63,7 @@ def plot_size_graph (response_size):
     plt.legend(loc=1)
     plt.grid(True)
 
-    plt.savefig(constants.picture_filename('-graph_size_MEAN-{0}'.format(action)), dpi=500)
+    plt.savefig(constants.picture_filename('graph_size_MEAN-{0}'.format(action)), dpi=500)
 
 
 def plot_behs_graph(no_response, no_correct, no_chosen, correct):
