@@ -37,23 +37,16 @@ def model_filename(n):
 
 
 # Features and labels.
-features_dense_filename = filename('dense-features.npy')
-features_conv2d_filename = filename('conv2d-features.npy')
-
-labels_filename = filename('labels.npy')
+features_fn_prefix = 'features'
+labels_fn_prefix = 'labels'
 
 training_stages = 10
-nn_training_percent = 0.50 # 50 percent
-am_training_percent = 25.0/70.0 # aprox. 36 percent
+nn_training_percent = 0.50 # 35,000 elements
+am_training_percent = 25.0/35.0 # 25,000 elements
 
-dense_domain = 512
-conv2d_domain = 512
-
-dense_tag = 'dense'
-conv2d_tag = 'conv2d'
+domain = 512
 
 n_jobs = 4
-n_memory_tests = 1
 n_labels = 10
 labels_per_memory = [0, 1, 2]
 

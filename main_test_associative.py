@@ -18,7 +18,7 @@ def print_error(*s):
     print('Error:', *s, file = sys.stderr)
 
 
-def plot_pre_graph (pre_mean, rec_mean, ent_mean, pre_std, rec_std, ent_std, tag):
+def plot_pre_graph (pre_mean, rec_mean, ent_mean, pre_std, rec_std, ent_std):
     cmap = mpl.colors.LinearSegmentedColormap.from_list('mycolors',['cyan','purple'])
     Z = [[0,0],[0,0]]
     step = 0.1
@@ -46,10 +46,10 @@ def plot_pre_graph (pre_mean, rec_mean, ent_mean, pre_std, rec_std, ent_std, tag
     cbar.ax.set_xticklabels(entropy_labels)
     cbar.set_label('Entropy')
 
-    plt.savefig(constants.picture_filename(tag + '-graph_l4_MEAN-{0}'.format(action)), dpi=500)
+    plt.savefig(constants.picture_filename('-graph_l4_MEAN-{0}'.format(action)), dpi=500)
 
 
-def plot_size_graph (response_size, tag):
+def plot_size_graph (response_size):
     plt.clf()
 
     main_step = len(constants.memory_sizes)
@@ -63,10 +63,10 @@ def plot_size_graph (response_size, tag):
     plt.legend(loc=1)
     plt.grid(True)
 
-    plt.savefig(constants.picture_filename(tag + '-graph_size_MEAN-{0}'.format(action)), dpi=500)
+    plt.savefig(constants.picture_filename('-graph_size_MEAN-{0}'.format(action)), dpi=500)
 
 
-def plot_behs_graph(no_response, no_correct, no_chosen, correct, tag):
+def plot_behs_graph(no_response, no_correct, no_chosen, correct):
 
     for i in range(len(no_response)):
         total = (no_response[i] + no_correct[i] + no_chosen[i] + correct[i])/100.0
@@ -98,7 +98,7 @@ def plot_behs_graph(no_response, no_correct, no_chosen, correct, tag):
     plt.legend(loc=0)
     plt.grid(axis='y')
 
-    plt.savefig(constants.picture_filename(tag + '-graph_behaviours_MEAN-{0}'.format(action)), dpi=500)
+    plt.savefig(constants.picture_filename('graph_behaviours_MEAN-{0}'.format(action)), dpi=500)
 
 
 def get_label(memories, entropies = None):
@@ -123,7 +123,6 @@ def get_ams_results(midx, msize, domain, lpm, trf, tef, trl, tel):
     print('Testing memory size:', msize)
 
 
-    print('----------------------------- Domain size:', domain)
     # Round the values
     max_value = trf.max()
     other_value = tef.max()
@@ -213,8 +212,7 @@ def get_ams_results(midx, msize, domain, lpm, trf, tef, trl, tel):
     return (midx, measures, entropy, behaviour)
     
 
-def test_memories(training_features, training_labels, \
-    testing_features, testing_labels, domain, tag, experiment):
+def test_memories(domain, experiment):
 
     average_entropy = []
     stdev_entropy = []
@@ -233,21 +231,37 @@ def test_memories(training_features, training_labels, \
     correct_chosen = []
     total_responses = []
 
-    for i in range(constants.n_memory_tests):
+    labels_x_memory = constants.labels_per_memory[experiment]
+    n_memories = int(constants.n_labels/labels_x_memory)
+
+    for i in range(constants.training_stages):
         gc.collect()
 
-        lpm = constants.labels_per_memory[experiment]
-        n_memories = int(constants.n_labels/lpm)
-        measures_per_size = np.zeros((len(constants.memory_sizes), n_memories, constants.n_measures), dtype=np.float64)
-        
+        feat_filename = constants.data_filename(constants.features_fn_prefix, i)
+        labl_filename = constants.data_filename(constants.labels_fn_prefix, i)
+
+        data = np.load(feat_filename)
+        labels = np.load(labl_filename)
+        j = int(len(data)*constants.am_training_percent)
+
+        training_features = data[:j]
+        training_labels = labels[:j]
+        testing_features = data[j:]
+        testing_labels = labels[j:]
+
+        measures_per_size = np.zeros((len(constants.memory_sizes), \
+            n_memories, constants.n_measures), dtype=np.float64)
 
         # An entropy value per memory size and memory.
         entropies = np.zeros((len(constants.memory_sizes), n_memories), dtype=np.float64)
         behaviours = np.zeros((len(constants.memory_sizes), constants.n_behaviours))
 
-        print('Train the different co-domain memories -- NinM: ',experiment,' run: ',i)
+        print('Train the different co-domain memories -- NxM: ',experiment,' run: ',i)
+        # Processes running in parallel.
         list_measures_entropies = Parallel(n_jobs=constants.n_jobs, verbose=50)(
-            delayed(get_ams_results)(midx, msize, domain, lpm, training_features, testing_features, training_labels, testing_labels) for midx, msize in enumerate(constants.memory_sizes))
+            delayed(get_ams_results)(midx, msize, domain, labels_x_memory, \
+                training_features, testing_features, training_labels, testing_labels) \
+                    for midx, msize in enumerate(constants.memory_sizes))
 
         for j, measures, entropy, behaviour in list_measures_entropies:
             measures_per_size[j, :, :] = measures.T
@@ -355,42 +369,42 @@ def test_memories(training_features, training_labels, \
     main_behaviours = [main_no_response, main_no_correct_response, \
         main_no_correct_chosen, main_correct_chosen, main_total_responses]
 
-    np.savetxt(constants.csv_filename(tag + '-main_average_precision--{0}'.format(action)), \
+    np.savetxt(constants.csv_filename('main_average_precision--{0}'.format(action)), \
         main_average_precision, delimiter=',')
-    np.savetxt(constants.csv_filename(tag + '-main_all_average_precision--{0}'.format(action)), \
+    np.savetxt(constants.csv_filename('main_all_average_precision--{0}'.format(action)), \
         main_all_average_precision, delimiter=',')
-    np.savetxt(constants.csv_filename(tag + '-main_average_recall--{0}'.format(action)), \
+    np.savetxt(constants.csv_filename('main_average_recall--{0}'.format(action)), \
         main_average_recall, delimiter=',')
-    np.savetxt(constants.csv_filename(tag + '-main_all_average_recall--{0}'.format(action)), \
+    np.savetxt(constants.csv_filename('main_all_average_recall--{0}'.format(action)), \
         main_all_average_recall, delimiter=',')
-    np.savetxt(constants.csv_filename(tag + '-main_average_entropy--{0}'.format(action)), \
+    np.savetxt(constants.csv_filename('main_average_entropy--{0}'.format(action)), \
         main_average_entropy, delimiter=',')
 
-    np.savetxt(constants.csv_filename(tag + '-main_stdev_precision--{0}'.format(action)), \
+    np.savetxt(constants.csv_filename('main_stdev_precision--{0}'.format(action)), \
         main_stdev_precision, delimiter=',')
-    np.savetxt(constants.csv_filename(tag + '-main_all_stdev_precision--{0}'.format(action)), \
+    np.savetxt(constants.csv_filename('main_all_stdev_precision--{0}'.format(action)), \
         main_all_stdev_precision, delimiter=',')
-    np.savetxt(constants.csv_filename(tag + '-main_stdev_recall--{0}'.format(action)), \
+    np.savetxt(constants.csv_filename('main_stdev_recall--{0}'.format(action)), \
         main_stdev_recall, delimiter=',')
-    np.savetxt(constants.csv_filename(tag + '-main_all_stdev_recall--{0}'.format(action)), \
+    np.savetxt(constants.csv_filename('main_all_stdev_recall--{0}'.format(action)), \
         main_all_stdev_recall, delimiter=',')
-    np.savetxt(constants.csv_filename(tag + '-main_stdev_entropy--{0}'.format(action)), \
+    np.savetxt(constants.csv_filename('main_stdev_entropy--{0}'.format(action)), \
         main_stdev_entropy, delimiter=',')
 
-    np.savetxt(constants.csv_filename(tag + '-main_behaviours--{0}'.format(action)), \
+    np.savetxt(constants.csv_filename('main_behaviours--{0}'.format(action)), \
         main_behaviours, delimiter=',')
 
     plot_pre_graph(main_average_precision, main_average_recall, main_average_entropy,\
-        main_stdev_precision, main_stdev_recall, main_stdev_entropy, tag)
+        main_stdev_precision, main_stdev_recall, main_stdev_entropy)
 
     plot_pre_graph(main_all_average_precision, main_all_average_recall, \
         main_average_entropy, main_all_stdev_precision, main_all_stdev_recall,\
-            main_stdev_entropy, tag+'-all')
+            main_stdev_entropy)
 
-    plot_size_graph(main_total_responses, tag)
+    plot_size_graph(main_total_responses)
 
     plot_behs_graph(main_no_response, main_no_correct_response, main_no_correct_chosen,\
-        main_correct_chosen, tag)
+        main_correct_chosen)
 
     print('Test complete')
 
@@ -410,34 +424,11 @@ def main(action):
         convnet.train_network()
     elif action == GET_FEATURES:
         # Generates features for the data sections using the previously generate neural network
-        convnet.obtain_features(constants.features_dense_filename, constants.labels_filename, 2)
-        convnet.obtain_features(constants.features_conv2d_filename, constants.labels_filename, 3)
+        convnet.obtain_features(constants.features_fn_prefix, constants.labels_fn_prefix, 3)
     else:
-        training_labels = np.load(constants.train_labels_filename)
-        testing_labels = np.load(constants.test_labels_filename)
-
-        training_features = np.load(constants.train_features_dense_filename)
-        testing_features = np.load(constants.test_features_dense_filename)
-
         # The domain size, equal to the size of the output layer of the network.
-        domain = constants.dense_domain
-        tag = constants.dense_tag
-
-        test_memories(training_features, training_labels, \
-            testing_features, testing_labels, domain, tag, action)
-
-        training_features = np.load(constants.train_features_conv2d_filename)
-        testing_features = np.load(constants.test_features_conv2d_filename)
-
-        print('Features shape: ', training_features.shape, testing_features.shape)
-        domain = constants.conv2d_domain
-        tag = constants.conv2d_tag
-
-        test_memories(training_features, training_labels, \
-            testing_features, testing_labels, domain, tag, action)
-      
-
-
+        domain = constants.domain
+        test_memories(domain, action)
 
 
 if __name__== "__main__" :

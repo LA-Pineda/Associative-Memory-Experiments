@@ -93,33 +93,40 @@ def train_network():
         n += 1
 
 
-def obtain_features(features_filename, labels_filename, pops):
+def obtain_features(features_fn_prefix, labels_fn_prefix, pops):
+ 
+    (data, labels) = get_data()
 
-    (train_images, train_labels), (test_images, test_labels) = get_data()
-
-    all_data = np.vstack((train_images, test_images))
-    labels = np.vstack((train_labels, test_labels))
-
-    total = len(all_data)
+    total = len(data)
     step = int(total/constants.training_stages)
 
-    features = np.array([])
+    # Amount of data used for testing
+    ntd = total - int(total*constants.nn_training_percent)
+
     n = 0
     for i in range(0, total, step):
+        j = (i + ntd) % total
 
-        testing_data = all_data[i:i+step]
+        if j > i:
+            testing_data = data[i:j]
+            testing_labels = labels[i:j]
+        else:
+            testing_data = np.concatenate((data[0:j], data[i:total]), axis=0)
+            testing_labels = np.concatenate((labels[0:j], labels[i:total]), axis=0)
  
         # Recreate the exact same model, including its weights and the optimizer
         model = tf.keras.models.load_model(constants.model_filename(n))
-        n += 1
 
-        # Drop the last two layers of the full connected neural network part.
+        # Drop the last layers of the full connected neural network part.
         for i in range(pops):
             model.pop()
  
-        f = model.predict(testing_data)
-        features = np.vstack((features, f)) if features.size else f
+        features = model.predict(testing_data)
 
-    np.save(features_filename, features)
-    np.save(labels_filename, labels)
+        feat_filename = constants.data_filename(features_fn_prefix, n)
+        labl_filename = constants.data_filename(labels_fn_prefix, n)
+        np.save(feat_filename, features)
+        np.save(labl_filename, testing_labels)
+
+        n += 1
 
