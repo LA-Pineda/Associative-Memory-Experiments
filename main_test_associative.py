@@ -128,8 +128,12 @@ def get_ams_results(midx, msize, domain, lpm, trf, tef, trl, tel):
     other_value = tef.max()
     max_value = max_value if max_value > other_value else other_value
 
-    trf_rounded = np.round(trf * (msize - 1) / max_value).astype(np.int16)
-    tef_rounded = np.round(tef * (msize - 1) / max_value).astype(np.int16)
+    min_value = trf.min()
+    other_value = tef.min()
+    min_value = min_value if min_value < other_value else other_value
+
+    trf_rounded = np.round((trf-min_value) * (msize - 1) / (max_value-min_value)).astype(np.int16)
+    tef_rounded = np.round((tef-min_value) * (msize - 1) / (max_value-min_value)).astype(np.int16)
 
     n_labels = constants.n_labels
     nmems = int(n_labels/lpm)
