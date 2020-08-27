@@ -30,23 +30,26 @@ def get_network():
     # Creates a two parts neural network: a convolutional neural network (CNN) with
     # three main layers, and a full connected neural network.
     model = tf.keras.models.Sequential()
-    model.add(tf.keras.layers.Conv2D(32,(3, 3), activation='relu', padding='same', input_shape=(28, 28, 1)))
+    model.add(tf.keras.layers.Conv2D(32,kernel_size=3, activation='relu', padding='same', input_shape=(28, 28, 1)))
     model.add(tf.keras.layers.MaxPooling2D((2, 2)))
-    model.add(tf.keras.layers.Dropout(0.2))
-    model.add(tf.keras.layers.Conv2D(64, (3, 3), activation='relu'))
+    # model.add(tf.keras.layers.Dropout(0.4))
+    model.add(tf.keras.layers.Conv2D(32,kernel_size=3, activation='relu'))
     model.add(tf.keras.layers.MaxPooling2D((2, 2)))
-    model.add(tf.keras.layers.Dropout(0.2))
-    model.add(tf.keras.layers.Conv2D(constants.conv2d_domain/4, (3, 3), activation='relu'))
+    model.add(tf.keras.layers.Dropout(0.4))
+    model.add(tf.keras.layers.Conv2D(64, kernel_size=5, activation='relu'))
     model.add(tf.keras.layers.MaxPooling2D((2, 2)))
+    model.add(tf.keras.layers.Dropout(0.4))
+    model.add(tf.keras.layers.LayerNormalization())
     model.add(tf.keras.layers.Flatten())
-    model.add(tf.keras.layers.Dropout(0.2))
-    model.add(tf.keras.layers.Dense(constants.dense_domain, activation='relu'))
-    model.add(tf.keras.layers.Dropout(0.5)),
+    model.add(tf.keras.layers.Dense(constants.domain*2, activation='relu'))
+    model.add(tf.keras.layers.Dropout(0.4)),
     model.add(tf.keras.layers.Dense(10, activation='softmax'))
     
     model.compile(loss='categorical_crossentropy',
                 optimizer='RMSprop',
                 metrics=['accuracy'])
+
+    model.summary()
 
     return model
 

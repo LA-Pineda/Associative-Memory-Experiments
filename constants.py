@@ -41,10 +41,10 @@ features_fn_prefix = 'features'
 labels_fn_prefix = 'labels'
 
 training_stages = 10
-nn_training_percent = 0.50 # 35,000 elements
-am_training_percent = 25.0/35.0 # 25,000 elements
+nn_training_percent = 40.0/70.0 # 25,000 elements
+am_training_percent = 20.0/30.0 # 35,000 elements
 
-domain = 512
+domain = 64
 
 n_jobs = 4
 n_labels = 10
