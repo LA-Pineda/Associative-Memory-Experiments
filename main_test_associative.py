@@ -49,11 +49,11 @@ def plot_pre_graph (pre_mean, rec_mean, ent_mean, pre_std, rec_std, ent_std, tag
     plt.savefig(constants.picture_filename(tag + 'graph_l4_MEAN-{0}'.format(action)), dpi=500)
 
 
-def plot_size_graph (response_size):
+def plot_size_graph (response_size, size_stdev):
     plt.clf()
 
     main_step = len(constants.memory_sizes)
-    plt.plot(np.arange(0, 100, main_step), response_size, 'g-D', label='Average number of responses')
+    plt.errobar(np.arange(0, 100, main_step), response_size, 'g-D', yerr=size_stdev, label='Average number of responses')
     plt.xlim(0, 90)
     plt.ylim(0, 10)
     plt.xticks(np.arange(0, 100, 10), constants.memory_sizes)
@@ -348,6 +348,7 @@ def test_memories(domain, experiment):
     main_no_correct_chosen = []
     main_correct_chosen = []
     main_total_responses = []
+    main_total_responses_stdev = []
 
 
     for i in range(len(constants.memory_sizes)):
@@ -369,6 +370,7 @@ def test_memories(domain, experiment):
         main_no_correct_chosen.append(no_correct_chosen[:, i].mean())
         main_correct_chosen.append(correct_chosen[:, i].mean())
         main_total_responses.append(total_responses[:, i].mean())
+        main_total_responses_stdev.append(total_responses[:, i].std())
 
     main_behaviours = [main_no_response, main_no_correct_response, \
         main_no_correct_chosen, main_correct_chosen, main_total_responses]
@@ -405,7 +407,7 @@ def test_memories(domain, experiment):
         main_average_entropy, main_all_stdev_precision, main_all_stdev_recall,\
             main_stdev_entropy, 'overall')
 
-    plot_size_graph(main_total_responses)
+    plot_size_graph(main_total_responses, main_total_responses_stdev)
 
     plot_behs_graph(main_no_response, main_no_correct_response, main_no_correct_chosen,\
         main_correct_chosen)
