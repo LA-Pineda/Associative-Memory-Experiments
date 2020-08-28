@@ -427,7 +427,8 @@ SECOND_EXP = 2
 def main(action):
     if action == TRAIN_NN:
         # Trains a neural network with those sections of data
-        convnet.train_network()
+        loss_acc = convnet.train_network()
+        np.savetxt(constants.csv_filename('neural_networks_stats'), loss_acc, delimiter=',')
     elif action == GET_FEATURES:
         # Generates features for the data sections using the previously generate neural network
         convnet.obtain_features(constants.features_fn_prefix, constants.labels_fn_prefix, 3)
