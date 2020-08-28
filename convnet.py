@@ -67,6 +67,7 @@ def train_network():
     ntd = total - int(total*constants.nn_training_percent)
 
     n = 0
+    stats = []
     for i in range(0, total, step):
         print("Training neural network #",n)
         j = (i + ntd) % total
@@ -90,9 +91,12 @@ def train_network():
                 verbose=2)
 
         test_loss, test_acc = model.evaluate(testing_data, testing_labels)
+        stats.append((test_loss, test_acc))
 
         model.save(constants.model_filename(n))
         n += 1
+    
+    return np.array(stats)
 
 
 def obtain_features(features_fn_prefix, labels_fn_prefix, pops):
