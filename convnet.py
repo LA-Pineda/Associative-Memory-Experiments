@@ -68,6 +68,7 @@ def train_network():
 
     n = 0
     for i in range(0, total, step):
+        print("Training neural network #",n)
         j = (i + ntd) % total
 
         if j > i:
@@ -90,8 +91,6 @@ def train_network():
 
         test_loss, test_acc = model.evaluate(testing_data, testing_labels)
 
-        print('Model', i, 'test accuracy:', test_acc)
-
         model.save(constants.model_filename(n))
         n += 1
 
@@ -113,9 +112,13 @@ def obtain_features(features_fn_prefix, labels_fn_prefix, pops):
         if j > i:
             testing_data = data[i:j]
             testing_labels = labels[i:j]
+            training_data = np.concatenate((data[0:i], data[j:total]), axis=0)
+            training_labels = np.concatenate((labels[0:i], labels[j:total]), axis=0)
         else:
-            testing_data = np.concatenate((data[0:j], data[i:total]), axis=0)
-            testing_labels = np.concatenate((labels[0:j], labels[i:total]), axis=0)
+            testing_data = np.concatenate((data[i:total], data[0:j]), axis=0)
+            testing_labels = np.concatenate((labels[i:total], labels[0:j]), axis=0)
+            training_data = data[j:i]
+            training_labels = labels[j:i]
  
         # Recreate the exact same model, including its weights and the optimizer
         model = tf.keras.models.load_model(constants.model_filename(n))
@@ -124,12 +127,16 @@ def obtain_features(features_fn_prefix, labels_fn_prefix, pops):
         for i in range(pops):
             model.pop()
  
-        features = model.predict(testing_data)
+        ftr = model.predict(training_data)
+        fte = model.predict(testing_data)
+
+        all_features = np.concatenate((ftr,fte), axis=0)
+        all_labels = np.concatenate((training_labels, testing_labels), axis=0)
 
         feat_filename = constants.data_filename(features_fn_prefix, n)
         labl_filename = constants.data_filename(labels_fn_prefix, n)
-        np.save(feat_filename, features)
-        np.save(labl_filename, testing_labels)
+        np.save(feat_filename, all_features)
+        np.save(labl_filename, all_labels)
 
         n += 1
 
