@@ -1,7 +1,6 @@
 import sys
 import gc
 import argparse
-import time
 
 import numpy as np
 from joblib import Parallel, delayed
@@ -416,10 +415,10 @@ def test_memories(domain, experiment):
     print('Test complete')
 
 
-def get_recalls(msize, domain, min, max, trf, trl, tef, tel):
+def get_recalls(ams, msize, domain, min, max, trf, trl, tef, tel):
 
-    trf_rounded = np.round((trf-min) * (msize - 1) / (max-min)).astype(np.int16)
-    tef_rounded = np.round((tef-min) * (msize - 1) / (max-min)).astype(np.int16)
+    trf_rounded = np.round((trf - min) * (msize - 1) / (max - min)).astype(np.int16)
+    tef_rounded = np.round((tef - min) * (msize - 1) / (max - min)).astype(np.int16)
 
     n_mems = constants.n_labels
     measures = np.zeros((constants.n_measures, n_mems), dtype=np.float64)
@@ -431,11 +430,6 @@ def get_recalls(msize, domain, min, max, trf, trl, tef, tel):
     FP = (0,1)
     FN = (1,0)
     TN = (1,1)
-
-    # Create the required associative memories.
-    ams = dict.fromkeys(range(n_mems))
-    for j in ams:
-        ams[j] = AssociativeMemory(domain, msize)
 
     # Registration
     for features, label in zip(trf_rounded, trl):
@@ -507,6 +501,57 @@ def get_stdev(d):
     return means
 
 
+def test_recalling_fold(n_memories, mem_size, domain, experiment, fold):
+    # Create the required associative memories.
+    ams = dict.fromkeys(range(n_memories))
+    for j in ams:
+        ams[j] = AssociativeMemory(domain, mem_size)
+
+    feat_filename = constants.data_filename(constants.features_fn_prefix, fold)
+    labl_filename = constants.data_filename(constants.labels_fn_prefix, fold)
+
+    data = np.load(feat_filename)
+    labels = np.load(labl_filename)
+    
+    maximum = data.max()
+    minimum = data.min()
+
+    total = int(len(data)*constants.am_training_percent)
+    test_idx = int(len(data)*(1-constants.am_training_percent))
+    step = int(total * constants.am_filling_percent)
+    n = int(total/step)
+
+    testing_features = data[test_idx:]
+    testing_labels = labels[test_idx:]
+
+    stage_recalls = {}
+    stage_entropies = {}
+    stage_mprecision = {}
+    stage_mrecall = {}
+
+    for j in range(n):
+        k = (j+1)*step
+        training_features = data[:k]
+        training_labels = labels[:k]
+
+        recalls, measures, entropies = get_recalls(ams, mem_size, domain, minimum, maximum, \
+            training_features, training_labels, testing_features, testing_labels)
+
+        # A list of tuples (label, features)
+        stage_recalls[j] = recalls
+
+        # An array with entropies per memory
+        stage_entropies[j] = entropies
+
+        # An array with precision per memory
+        stage_mprecision[j] = measures[constants.precision_idx,:]
+
+        # An array with precision per memory
+        stage_mrecall[j] = measures[constants.recall_idx,:]
+
+    return  fold, stage_recalls, stage_entropies, stage_mprecision, stage_mrecall
+
+
 def test_recalling(domain, experiment):
     n_memories = constants.n_labels
     mem_size = constants.ideal_memory_size
@@ -516,58 +561,12 @@ def test_recalling(domain, experiment):
     all_mprecision = {}
     all_mrecall = {}
 
-    for i in range(constants.training_stages):
+    list_results = Parallel(n_jobs=constants.n_jobs, verbose=50)(
+        delayed(test_recalling_fold)(n_memories, mem_size, domain, experiment, fold) \
+            for fold in range(constants.training_stages))
 
-        print('-----------Testing recall at', i, 'fold')
-        gc.collect()
-
-        feat_filename = constants.data_filename(constants.features_fn_prefix, i)
-        labl_filename = constants.data_filename(constants.labels_fn_prefix, i)
-
-        data = np.load(feat_filename)
-        labels = np.load(labl_filename)
-        
-        maximum = data.max()
-        minimum = data.min()
-
-        total = int(len(data)*constants.am_training_percent)
-        test_idx = int(len(data)*(1-constants.am_training_percent))
-        step = int(total * constants.am_filling_percent)
-        n = int(total/step)
-
-        testing_features = data[test_idx:]
-        testing_labels = labels[test_idx:]
-
-        stage_recalls = {}
-        stage_entropies = {}
-        stage_mprecision = {}
-        stage_mrecall = {}
-
-        for j in range(n):
-            print('Testing memories at', 100*(j+1)*constants.am_filling_percent,'%', end = ': ')
-            start_time = time.time()
-            k = (j+1)*step
-            training_features = data[:k]
-            training_labels = labels[:k]
-
-            recalls, measures, entropies = get_recalls(mem_size, domain, minimum, maximum, \
-                training_features, training_labels, testing_features, testing_labels)
-
-            # A list of tuples (label, features)
-            stage_recalls[j] = recalls
-
-            # An array with entropies per memory
-            stage_entropies[j] = entropies
-
-            # An array with precision per memory
-            stage_mprecision[j] = measures[constants.precision_idx,:]
-
-            # An array with precision per memory
-            stage_mrecall[j] = measures[constants.recall_idx,:]
-            total_time = time.time() - start_time
-            print(" %s seconds." % total_time)
-
-        if i == 0:
+    for fold, recalls, entropies, mprecision, mrecall in list_results:
+        if fold == 0:
             for j in stage_recalls:
                 all_recalls[j] = stage_recalls[j]
                 all_entropies[j] = [stage_entropies[j]]
@@ -584,7 +583,7 @@ def test_recalling(domain, experiment):
         list_tups = all_recalls[i]
         rows = []
         for (label, features) in list_tups:
-            a = np.array((domain + 1, ))
+            a = np.zeros((domain + 1, ))
             a[0] = label
             a[1:(domain+1)] = features
             rows.append(a)
