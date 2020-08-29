@@ -446,8 +446,8 @@ def get_recalls(ams, msize, domain, min, max, trf, trl, tef, tel):
         recalls ={}
 
         for k in ams:
-            recall = ams[label].recall(features)
-            recognized = not (ams[label].is_undefined(recall))
+            recall = ams[k].recall(features)
+            recognized = not (ams[k].is_undefined(recall))
 
             # For calculation of per memory precision and recall
             if (k == label) and recognized:
