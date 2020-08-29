@@ -459,12 +459,11 @@ def get_recalls(ams, msize, domain, min, max, trf, trl, tef, tel):
             else:
                 cms[k][TN] += 1
 
-            # For calculation of behaviours, including overall precision and recall.
             if recognized:
                 memories.append(k)
                 recalls[k] = recall
 
-        if (len(memories) == 0) or not (label in memories):
+        if (len(memories) == 0):
             # Register empty case
             undefined = np.full(domain, ams[0].undefined)
             all_recalls.append((label, undefined))
@@ -498,7 +497,7 @@ def get_stdev(d):
         std = rows.std()
         stdevs[k] = std
 
-    return means
+    return stdevs
 
 
 def test_recalling_fold(n_memories, mem_size, domain, experiment, fold):
@@ -565,19 +564,12 @@ def test_recalling(domain, experiment):
         delayed(test_recalling_fold)(n_memories, mem_size, domain, experiment, fold) \
             for fold in range(constants.training_stages))
 
-    for fold, recalls, entropies, mprecision, mrecall in list_results:
-        if fold == 0:
-            for j in stage_recalls:
-                all_recalls[j] = stage_recalls[j]
-                all_entropies[j] = [stage_entropies[j]]
-                all_mprecision[j] = [stage_mprecision[j]]
-                all_mrecall[j] = [stage_mrecall[j]]
-        else:
-            for j in stage_entropies:
-                all_recalls[j].append(stage_recalls[j])
-                all_entropies[j].append(stage_entropies[j])
-                all_mprecision[j].append(stage_mprecision[j])
-                all_mrecall[j].append(stage_mrecall[j])
+    for fold, stage_recalls, stage_entropies, stage_mprecision, stage_mrecall in list_results:
+        for j in stage_recalls:
+            all_recalls[j] = all_recalls[j] + stage_recalls[j] if j in all_recalls.keys() else stage_recalls[j]
+            all_entropies[j] = all_entropies[j] + stage_entropies[j] if j in all_entropies.keys() else stage_entropies[j]
+            all_mprecision[j] = all_mprecision[j] + stage_mprecision[j] if j in all_mprecision.keys() else stage_mprecision[j]
+            all_mrecall[j] = all_mrecall[j] + stage_mrecall[j] if j in all_mrecall.keys() else stage_mrecall[j]
 
     for i in all_recalls:
         list_tups = all_recalls[i]
