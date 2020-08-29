@@ -1,6 +1,6 @@
 # Created by Raul Peralta-Lozada
 
-import numpy
+import numpy as np
 import random
 
 
@@ -22,12 +22,12 @@ class AssociativeMemory(object):
         self.m = m
 
         # it is m+1 to handle partial functions.
-        self.relation = numpy.zeros((self.m+1, self.n), dtype=numpy.bool)
+        self.relation = np.zeros((self.m, self.n), dtype=np.bool)
 
     def __str__(self):
-        relation = numpy.zeros((self.m, self.n), dtype=numpy.unicode)
+        relation = np.zeros((self.m, self.n), dtype=np.unicode)
         relation[:] = 'O'
-        r, c = numpy.nonzero(self.relation[:self.m,:self.n])
+        r, c = np.nonzero(self.relation[:self.m,:self.n])
         for i in zip(r, c):
             relation[i] = 'X'
         return str(relation)
@@ -59,10 +59,10 @@ class AssociativeMemory(object):
         return self._relation
 
     @relation.setter
-    def relation(self, new_relation: numpy.ndarray):
-        if (isinstance(new_relation, numpy.ndarray) and
-                new_relation.dtype == numpy.bool and
-                new_relation.shape == (self.m+1, self.n)):
+    def relation(self, new_relation: np.ndarray):
+        if (isinstance(new_relation, np.ndarray) and
+                new_relation.dtype == np.bool and
+                new_relation.shape == (self.m, self.n)):
             self._relation = new_relation
         else:
             raise ValueError('Invalid relation assignment.')
@@ -71,32 +71,34 @@ class AssociativeMemory(object):
     def entropy(self) -> float:
         """Return the entropy of the Associative Memory."""
         e = 0.0  # entropy
-        v = self.relation[:self.m,:self.n].sum(axis=0)  # number of marked cells in the columns
+        v = self.relation.sum(axis=0)  # number of marked cells in the columns
         for vi in v:
             if vi != 0:
-                e += numpy.log2(1. / vi)
+                e += np.log2(1.0 / vi)
         e *= (-1.0 / self.n)
         return e
 
     # @classmethod
-    # def from_relation(cls, relation: numpy.ndarray) -> 'AssociativeMemory':
+    # def from_relation(cls, relation: np.ndarray) -> 'AssociativeMemory':
     #     associative_mem = cls(relation.shape[1], relation.shape[0])
     #     associative_mem.relation = relation
     #     return associative_mem
 
-
     @property
     def undefined(self):
-        return self.m
+        return np.nan
 
     
-    def is_defined(self, v):
-        return self.m == v
+    def is_undefined(self, value):
+        return np.all(np.isnan(value))
 
 
     def vector_to_relation(self, vector):
-        relation = numpy.zeros((self.m+1, self.n), numpy.bool)
-        relation[vector, range(self.n)] = True
+        relation = np.zeros((self.m, self.n), np.bool)
+        try:
+            relation[vector, range(self.n)] = True
+        except:
+            pass
         return relation
 
 
@@ -125,7 +127,7 @@ class AssociativeMemory(object):
 
     # Reduces a relation to a function
     def lreduce(self, relation):
-        v = numpy.full(self.n, self.undefined, numpy.int16)
+        v = np.full(self.n, self.undefined)
 
         for i in range(self.n):
             v[i] = self.choose(i)
@@ -133,14 +135,6 @@ class AssociativeMemory(object):
         return v
 
     
-    def wrap(self, relation):
-        wrapper = numpy.zeros((self.m+1, self.n), dtype=numpy.bool)
-
-        for i in range(self.m):
-            for j in range(self.n):
-                print(i)
-                
-
     def validate(self, vector):
         if vector.size != self.n:
             raise ValueError('Invalid size of the input data. Expected', self.n, 'and given', vector.size)
@@ -151,7 +145,7 @@ class AssociativeMemory(object):
 
     def register(self, vector) -> None:
         # Forces it to be a vector.
-        vector = numpy.ravel(vector)
+        vector = np.ravel(vector)
 
         self.validate(vector)
 
@@ -165,7 +159,7 @@ class AssociativeMemory(object):
         r_io = self.vector_to_relation(vector)
         r_io = self.containment(r_io)
         
-        return numpy.all(r_io[:self.m,:self.n] == True)
+        return np.all(r_io == True)
 
 
     def recall(self, vector):
@@ -174,9 +168,9 @@ class AssociativeMemory(object):
         r_io = self.vector_to_relation(vector)
         buffer = self.containment(r_io)
 
-        if numpy.all(r_io[:self.m,:self.n] == True):
+        if np.all(buffer == True):
             r_io = self.lreduce(r_io)
         else:
-            r_io = numpy.zeros((self.m+1, self.n), dtype=numpy.bool)
+            r_io = np.full(self.n, self.undefined)
 
         return r_io

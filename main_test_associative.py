@@ -1,6 +1,7 @@
 import sys
 import gc
 import argparse
+import time
 
 import numpy as np
 from joblib import Parallel, delayed
@@ -375,29 +376,29 @@ def test_memories(domain, experiment):
     main_behaviours = [main_no_response, main_no_correct_response, \
         main_no_correct_chosen, main_correct_chosen, main_total_responses]
 
-    np.savetxt(constants.csv_filename('main_average_precision--{0}'.format(action)), \
+    np.savetxt(constants.csv_filename('main_average_precision--{0}'.format(experiment)), \
         main_average_precision, delimiter=',')
-    np.savetxt(constants.csv_filename('main_all_average_precision--{0}'.format(action)), \
+    np.savetxt(constants.csv_filename('main_all_average_precision--{0}'.format(experiment)), \
         main_all_average_precision, delimiter=',')
-    np.savetxt(constants.csv_filename('main_average_recall--{0}'.format(action)), \
+    np.savetxt(constants.csv_filename('main_average_recall--{0}'.format(experiment)), \
         main_average_recall, delimiter=',')
-    np.savetxt(constants.csv_filename('main_all_average_recall--{0}'.format(action)), \
+    np.savetxt(constants.csv_filename('main_all_average_recall--{0}'.format(experiment)), \
         main_all_average_recall, delimiter=',')
-    np.savetxt(constants.csv_filename('main_average_entropy--{0}'.format(action)), \
+    np.savetxt(constants.csv_filename('main_average_entropy--{0}'.format(experiment)), \
         main_average_entropy, delimiter=',')
 
-    np.savetxt(constants.csv_filename('main_stdev_precision--{0}'.format(action)), \
+    np.savetxt(constants.csv_filename('main_stdev_precision--{0}'.format(experiment)), \
         main_stdev_precision, delimiter=',')
-    np.savetxt(constants.csv_filename('main_all_stdev_precision--{0}'.format(action)), \
+    np.savetxt(constants.csv_filename('main_all_stdev_precision--{0}'.format(experiment)), \
         main_all_stdev_precision, delimiter=',')
-    np.savetxt(constants.csv_filename('main_stdev_recall--{0}'.format(action)), \
+    np.savetxt(constants.csv_filename('main_stdev_recall--{0}'.format(experiment)), \
         main_stdev_recall, delimiter=',')
-    np.savetxt(constants.csv_filename('main_all_stdev_recall--{0}'.format(action)), \
+    np.savetxt(constants.csv_filename('main_all_stdev_recall--{0}'.format(experiment)), \
         main_all_stdev_recall, delimiter=',')
-    np.savetxt(constants.csv_filename('main_stdev_entropy--{0}'.format(action)), \
+    np.savetxt(constants.csv_filename('main_stdev_entropy--{0}'.format(experiment)), \
         main_stdev_entropy, delimiter=',')
 
-    np.savetxt(constants.csv_filename('main_behaviours--{0}'.format(action)), \
+    np.savetxt(constants.csv_filename('main_behaviours--{0}'.format(experiment)), \
         main_behaviours, delimiter=',')
 
     plot_pre_graph(main_average_precision, main_average_recall, main_average_entropy,\
@@ -415,6 +416,213 @@ def test_memories(domain, experiment):
     print('Test complete')
 
 
+def get_recalls(msize, domain, min, max, trf, trl, tef, tel):
+
+    trf_rounded = np.round((trf-min) * (msize - 1) / (max-min)).astype(np.int16)
+    tef_rounded = np.round((tef-min) * (msize - 1) / (max-min)).astype(np.int16)
+
+    n_mems = constants.n_labels
+    measures = np.zeros((constants.n_measures, n_mems), dtype=np.float64)
+    entropy = np.zeros((n_mems, ), dtype=np.float64)
+
+    # Confusion matrix for calculating precision and recall per memory.
+    cms = np.zeros((n_mems, 2, 2))
+    TP = (0,0)
+    FP = (0,1)
+    FN = (1,0)
+    TN = (1,1)
+
+    # Create the required associative memories.
+    ams = dict.fromkeys(range(n_mems))
+    for j in ams:
+        ams[j] = AssociativeMemory(domain, msize)
+
+    # Registration
+    for features, label in zip(trf_rounded, trl):
+        ams[label].register(features)
+
+    # Calculate entropies
+    for j in ams:
+        entropy[j] = ams[j].entropy
+
+    all_recalls = []
+    # Recover memories
+    for features, label in zip(tef_rounded, tel):
+        memories = []
+        recalls ={}
+
+        for k in ams:
+            recall = ams[label].recall(features)
+            recognized = not (ams[label].is_undefined(recall))
+
+            # For calculation of per memory precision and recall
+            if (k == label) and recognized:
+                cms[k][TP] += 1
+            elif k == label:
+                cms[k][FN] += 1
+            elif recognized:
+                cms[k][FP] += 1
+            else:
+                cms[k][TN] += 1
+
+            # For calculation of behaviours, including overall precision and recall.
+            if recognized:
+                memories.append(k)
+                recalls[k] = recall
+
+        if (len(memories) == 0) or not (label in memories):
+            # Register empty case
+            undefined = np.full(domain, ams[0].undefined)
+            all_recalls.append((label, undefined))
+        else:
+            l = get_label(memories, entropy)
+            all_recalls.append((label, recalls[l]))
+
+    for i in range(n_mems):
+        measures[constants.precision_idx,i] = cms[i][TP] /(cms[i][TP] + cms[i][FP])
+        measures[constants.recall_idx,i] = cms[i][TP] /(cms[i][TP] + cms[i][FN])    
+
+    return all_recalls, measures, entropy
+    
+
+def get_means(d):
+    n = len(d.keys())
+    means = np.zeros((n, ))
+    for k in d:
+        rows = np.array(d[k])
+        mean = rows.mean()
+        means[k] = mean
+
+    return means
+
+
+def get_stdev(d):
+    n = len(d.keys())
+    stdevs = np.zeros((n, ))
+    for k in d:
+        rows = np.array(d[k])
+        std = rows.std()
+        stdevs[k] = std
+
+    return means
+
+
+def test_recalling(domain, experiment):
+    n_memories = constants.n_labels
+    mem_size = constants.ideal_memory_size
+
+    all_recalls = {}
+    all_entropies = {}
+    all_mprecision = {}
+    all_mrecall = {}
+
+    for i in range(constants.training_stages):
+
+        print('-----------Testing recall at', i, 'fold')
+        gc.collect()
+
+        feat_filename = constants.data_filename(constants.features_fn_prefix, i)
+        labl_filename = constants.data_filename(constants.labels_fn_prefix, i)
+
+        data = np.load(feat_filename)
+        labels = np.load(labl_filename)
+        
+        maximum = data.max()
+        minimum = data.min()
+
+        total = int(len(data)*constants.am_training_percent)
+        test_idx = int(len(data)*(1-constants.am_training_percent))
+        step = int(total * constants.am_filling_percent)
+        n = int(total/step)
+
+        testing_features = data[test_idx:]
+        testing_labels = labels[test_idx:]
+
+        stage_recalls = {}
+        stage_entropies = {}
+        stage_mprecision = {}
+        stage_mrecall = {}
+
+        for j in range(n):
+            print('Testing memories at', 100*(j+1)*constants.am_filling_percent,'%', end = ': ')
+            start_time = time.time()
+            k = (j+1)*step
+            training_features = data[:k]
+            training_labels = labels[:k]
+
+            recalls, measures, entropies = get_recalls(mem_size, domain, minimum, maximum, \
+                training_features, training_labels, testing_features, testing_labels)
+
+            # A list of tuples (label, features)
+            stage_recalls[j] = recalls
+
+            # An array with entropies per memory
+            stage_entropies[j] = entropies
+
+            # An array with precision per memory
+            stage_mprecision[j] = measures[constants.precision_idx,:]
+
+            # An array with precision per memory
+            stage_mrecall[j] = measures[constants.recall_idx,:]
+            total_time = time.time() - start_time
+            print(" %s seconds." % total_time)
+
+        if i == 0:
+            for j in stage_recalls:
+                all_recalls[j] = stage_recalls[j]
+                all_entropies[j] = [stage_entropies[j]]
+                all_mprecision[j] = [stage_mprecision[j]]
+                all_mrecall[j] = [stage_mrecall[j]]
+        else:
+            for j in stage_entropies:
+                all_recalls[j].append(stage_recalls[j])
+                all_entropies[j].append(stage_entropies[j])
+                all_mprecision[j].append(stage_mprecision[j])
+                all_mrecall[j].append(stage_mrecall[j])
+
+    for i in all_recalls:
+        list_tups = all_recalls[i]
+        rows = []
+        for (label, features) in list_tups:
+            a = np.array((domain + 1, ))
+            a[0] = label
+            a[1:(domain+1)] = features
+            rows.append(a)
+        rows = np.array(rows)
+        filename = constants.csv_filename(constants.memories_fn_prefix, i)
+        np.savetxt(filename, rows, delimiter=',')
+
+    main_avrge_entropies = get_means(all_entropies)
+    main_stdev_entropies = get_stdev(all_entropies)
+    main_avrge_mprecision = get_means(all_mprecision)
+    main_stdev_mprecision = get_stdev(all_mprecision)
+    main_avrge_mrecall = get_means(all_mrecall)
+    main_stdev_mrecall = get_stdev(all_mrecall)
+    
+    np.savetxt(constants.csv_filename('main_average_precision',experiment), \
+        main_avrge_mprecision, delimiter=',')
+    np.savetxt(constants.csv_filename('main_average_recall',experiment), \
+        main_avrge_mrecall, delimiter=',')
+    np.savetxt(constants.csv_filename('main_average_entropy',experiment), \
+        main_avrge_entropies, delimiter=',')
+
+    np.savetxt(constants.csv_filename('main_stdev_precision',experiment), \
+        main_stdev_mprecision, delimiter=',')
+    np.savetxt(constants.csv_filename('main_stdev_recall',experiment), \
+        main_stdev_mrecall, delimiter=',')
+    np.savetxt(constants.csv_filename('main_stdev_entropy',experiment), \
+        main_stdev_entropies, delimiter=',')
+
+    plot_pre_graph(main_avrge_mprecision, main_avrge_mrecall, main_avrge_entropies,\
+        main_stdev_mprecision, main_stdev_mrecall, main_stdev_entropies)
+
+    print('Test complete')
+
+
+
+
+
+
 ##############################################################################
 # Main section
 
@@ -422,6 +630,7 @@ TRAIN_NN = -1
 GET_FEATURES = 0
 FIRST_EXP = 1
 SECOND_EXP = 2
+THIRD_EXP = 3
 
 
 def main(action):
@@ -432,10 +641,11 @@ def main(action):
     elif action == GET_FEATURES:
         # Generates features for the data sections using the previously generate neural network
         convnet.obtain_features(constants.features_fn_prefix, constants.labels_fn_prefix, 3)
-    else:
+    elif (action == FIRST_EXP) or (action == SECOND_EXP):
         # The domain size, equal to the size of the output layer of the network.
-        domain = constants.domain
-        test_memories(domain, action)
+        test_memories(constants.domain, action)
+    else:
+        test_recalling(constants.domain, action)
 
 
 if __name__== "__main__" :
@@ -455,10 +665,11 @@ if __name__== "__main__" :
     
     if action is None:
         # An experiment was chosen
-        if (n < FIRST_EXP) or (n > SECOND_EXP):
+        if (n < FIRST_EXP) or (n > THIRD_EXP):
             print_error("There are only three experiments available, numbered 1, 2, and 3.")
             exit(1)
-        main(n)
+        else:
+            main(n)
     else:
         main(action)
 

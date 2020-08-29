@@ -39,10 +39,12 @@ def model_filename(n):
 # Features and labels.
 features_fn_prefix = 'features'
 labels_fn_prefix = 'labels'
+memories_fn_prefix = 'memories'
 
 training_stages = 10
-nn_training_percent = 40.0/70.0 # 25,000 elements
-am_training_percent = 20.0/30.0 # 35,000 elements
+nn_training_percent = 40.0/70.0
+am_training_percent = 20.0/30.0
+am_filling_percent = 0.1
 
 domain = 64
 
@@ -70,4 +72,6 @@ mean_responses_idx = 6
 n_behaviours = 7
 
 memory_sizes = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
+ideal_memory_size = 38
+
 
