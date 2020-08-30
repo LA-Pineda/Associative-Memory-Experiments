@@ -18,7 +18,9 @@ def print_error(*s):
     print('Error:', *s, file = sys.stderr)
 
 
-def plot_pre_graph (pre_mean, rec_mean, ent_mean, pre_std, rec_std, ent_std, tag=''):
+def plot_pre_graph (pre_mean, rec_mean, ent_mean, pre_std, rec_std, ent_std, \
+    tag = '', xlabels = constants.memory_sizes):
+
     cmap = mpl.colors.LinearSegmentedColormap.from_list('mycolors',['cyan','purple'])
     Z = [[0,0],[0,0]]
     step = 0.1
@@ -27,12 +29,12 @@ def plot_pre_graph (pre_mean, rec_mean, ent_mean, pre_std, rec_std, ent_std, tag
 
     plt.clf()
 
-    main_step = len(constants.memory_sizes)
+    main_step = 100.0/len(xlabels)
     plt.errorbar(np.arange(0, 100, main_step), pre_mean, fmt='r-o', yerr=pre_std, label='Precision')
     plt.errorbar(np.arange(0, 100, main_step), rec_mean, fmt='b-s', yerr=rec_std, label='Recall')
     plt.xlim(0, 90)
     plt.ylim(0, 102)
-    plt.xticks(np.arange(0, 100, 10), constants.memory_sizes)
+    plt.xticks(np.arange(0, 100, main_step), xlabels)
 
     plt.xlabel('Range Quantization Levels')
     plt.ylabel('Percentage [%]')
@@ -42,7 +44,7 @@ def plot_pre_graph (pre_mean, rec_mean, ent_mean, pre_std, rec_std, ent_std, tag
     entropy_labels = [str(e) for e in np.around(ent_mean, decimals=1)]
 
     cbar = plt.colorbar(CS3, orientation='horizontal')
-    cbar.set_ticks(np.arange(0, 100, 10))
+    cbar.set_ticks(np.arange(0, 100, main_step))
     cbar.ax.set_xticklabels(entropy_labels)
     cbar.set_label('Entropy')
 
@@ -469,10 +471,12 @@ def get_recalls(ams, msize, domain, min, max, trf, trl, tef, tel):
             all_recalls.append((label, undefined))
         else:
             l = get_label(memories, entropy)
-            all_recalls.append((label, recalls[l]))
+            features = recalls[l]*(max-min)*1.0/(msize-1) + min
+            all_recalls.append((label, features))
 
     for i in range(n_mems):
-        measures[constants.precision_idx,i] = cms[i][TP] /(cms[i][TP] + cms[i][FP])
+        positives = cms[i][TP] + cms[i][FP]
+        measures[constants.precision_idx,i] = cms[i][TP] / positives if positives else 1.0
         measures[constants.recall_idx,i] = cms[i][TP] /(cms[i][TP] + cms[i][FN])    
 
     return all_recalls, measures, entropy
@@ -497,8 +501,8 @@ def get_stdev(d):
         std = rows.std()
         stdevs[k] = std
 
-    return stdevs
-
+    return stdevs    
+    
 
 def test_recalling_fold(n_memories, mem_size, domain, experiment, fold):
     # Create the required associative memories.
@@ -516,22 +520,25 @@ def test_recalling_fold(n_memories, mem_size, domain, experiment, fold):
     minimum = data.min()
 
     total = int(len(data)*constants.am_training_percent)
-    test_idx = int(len(data)*(1-constants.am_training_percent))
-    step = int(total * constants.am_filling_percent)
-    n = int(total/step)
+    percents = np.array([1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 100.0])
+    steps = np.round(total*percents/100.0).astype(int)
+    xlabels = percents.tolist()
 
-    testing_features = data[test_idx:]
-    testing_labels = labels[test_idx:]
+    testing_features = data[total:]
+    testing_labels = labels[total:]
 
     stage_recalls = {}
     stage_entropies = {}
     stage_mprecision = {}
     stage_mrecall = {}
 
-    for j in range(n):
-        k = (j+1)*step
-        training_features = data[:k]
-        training_labels = labels[:k]
+    i = 0
+    k = 0
+    for j in range(len(steps)):
+        k += steps[j]
+        training_features = data[i:k]
+        training_labels = labels[i:k]
+        i = k
 
         recalls, measures, entropies = get_recalls(ams, mem_size, domain, minimum, maximum, \
             training_features, training_labels, testing_features, testing_labels)
@@ -545,10 +552,10 @@ def test_recalling_fold(n_memories, mem_size, domain, experiment, fold):
         # An array with precision per memory
         stage_mprecision[j] = measures[constants.precision_idx,:]
 
-        # An array with precision per memory
+        # An array with recall per memory
         stage_mrecall[j] = measures[constants.recall_idx,:]
 
-    return  fold, stage_recalls, stage_entropies, stage_mprecision, stage_mrecall
+    return  stage_recalls, stage_entropies, stage_mprecision, stage_mrecall, xlabels
 
 
 def test_recalling(domain, experiment):
@@ -560,16 +567,23 @@ def test_recalling(domain, experiment):
     all_mprecision = {}
     all_mrecall = {}
 
+    xlabels = []
+
     list_results = Parallel(n_jobs=constants.n_jobs, verbose=50)(
         delayed(test_recalling_fold)(n_memories, mem_size, domain, experiment, fold) \
             for fold in range(constants.training_stages))
 
-    for fold, stage_recalls, stage_entropies, stage_mprecision, stage_mrecall in list_results:
+    for stage_recalls, stage_entropies, stage_mprecision, stage_mrecall, xlbls in list_results:
+        xlabels = xlbls
         for j in stage_recalls:
-            all_recalls[j] = all_recalls[j] + stage_recalls[j] if j in all_recalls.keys() else stage_recalls[j]
-            all_entropies[j] = all_entropies[j] + stage_entropies[j] if j in all_entropies.keys() else stage_entropies[j]
-            all_mprecision[j] = all_mprecision[j] + stage_mprecision[j] if j in all_mprecision.keys() else stage_mprecision[j]
-            all_mrecall[j] = all_mrecall[j] + stage_mrecall[j] if j in all_mrecall.keys() else stage_mrecall[j]
+            all_recalls[j] = all_recalls[j] + stage_recalls[j] \
+                if j in all_recalls.keys() else stage_recalls[j]
+            all_entropies[j] = all_entropies[j] + [stage_entropies[j]] \
+                if j in all_entropies.keys() else [stage_entropies[j]]
+            all_mprecision[j] = all_mprecision[j] + [stage_mprecision[j]] \
+                if j in all_mprecision.keys() else [stage_mprecision[j]]
+            all_mrecall[j] = all_mrecall[j] + [stage_mrecall[j]] \
+                if j in all_mrecall.keys() else [stage_mrecall[j]]
 
     for i in all_recalls:
         list_tups = all_recalls[i]
@@ -604,8 +618,8 @@ def test_recalling(domain, experiment):
     np.savetxt(constants.csv_filename('main_stdev_entropy',experiment), \
         main_stdev_entropies, delimiter=',')
 
-    plot_pre_graph(main_avrge_mprecision, main_avrge_mrecall, main_avrge_entropies,\
-        main_stdev_mprecision, main_stdev_mrecall, main_stdev_entropies, 'recall')
+    plot_pre_graph(main_avrge_mprecision*100, main_avrge_mrecall*100, main_avrge_entropies,\
+        main_stdev_mprecision*100, main_stdev_mrecall*100, main_stdev_entropies, 'recall', xlabels)
 
     print('Test complete')
 
