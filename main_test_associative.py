@@ -605,7 +605,7 @@ def test_recalling(domain, experiment):
         main_stdev_entropies, delimiter=',')
 
     plot_pre_graph(main_avrge_mprecision, main_avrge_mrecall, main_avrge_entropies,\
-        main_stdev_mprecision, main_stdev_mrecall, main_stdev_entropies)
+        main_stdev_mprecision, main_stdev_mrecall, main_stdev_entropies, 'recall')
 
     print('Test complete')
 
