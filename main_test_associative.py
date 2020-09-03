@@ -19,7 +19,8 @@ def print_error(*s):
 
 
 def plot_pre_graph (pre_mean, rec_mean, ent_mean, pre_std, rec_std, ent_std, \
-    tag = '', xlabels = constants.memory_sizes):
+    tag = '', xlabels = constants.memory_sizes, xtitle = 'Range Quantization Levels', \
+        ytitle = 'Percentage [%]'):
 
     cmap = mpl.colors.LinearSegmentedColormap.from_list('mycolors',['cyan','purple'])
     Z = [[0,0],[0,0]]
@@ -36,8 +37,8 @@ def plot_pre_graph (pre_mean, rec_mean, ent_mean, pre_std, rec_std, ent_std, \
     plt.ylim(0, 102)
     plt.xticks(np.arange(0, 100, main_step), xlabels)
 
-    plt.xlabel('Range Quantization Levels')
-    plt.ylabel('Percentage [%]')
+    plt.xlabel(xtitle)
+    plt.ylabel(ytitle)
     plt.legend(loc=4)
     plt.grid(True)
 
@@ -619,7 +620,8 @@ def test_recalling(domain, experiment):
         main_stdev_entropies, delimiter=',')
 
     plot_pre_graph(main_avrge_mprecision*100, main_avrge_mrecall*100, main_avrge_entropies,\
-        main_stdev_mprecision*100, main_stdev_mrecall*100, main_stdev_entropies, 'recall', xlabels)
+        main_stdev_mprecision*100, main_stdev_mrecall*100, main_stdev_entropies, 'recall-', \
+            xlabels = xlabels, xtitle = 'Percentage of memory corpus')
 
     print('Test complete')
 
