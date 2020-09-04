@@ -42,7 +42,7 @@ labels_fn_prefix = 'labels'
 memories_fn_prefix = 'memories'
 
 training_stages = 10
-nn_training_percent = 40.0/70.0
+nn_training_percent = 60.0/70.0
 am_training_percent = 20.0/30.0
 am_filling_percent = 0.1
 
