@@ -25,6 +25,30 @@ def get_data(one_hot = False):
     return (all_data, all_labels)
 
 
+def get_encoder():
+
+    # Creates a two parts neural network: a convolutional neural network (CNN) with
+    # three main layers, and a full connected neural network.
+    model = tf.keras.models.Sequential()
+    model.add(tf.keras.layers.Conv2D(32,kernel_size=3, activation='relu', padding='same', input_shape=(28, 28, 1)))
+    model.add(tf.keras.layers.MaxPooling2D((2, 2)))
+    # model.add(tf.keras.layers.Dropout(0.4))
+    model.add(tf.keras.layers.Conv2D(32,kernel_size=3, activation='relu'))
+    model.add(tf.keras.layers.MaxPooling2D((2, 2)))
+    model.add(tf.keras.layers.Dropout(0.4))
+    model.add(tf.keras.layers.Conv2D(64, kernel_size=5, activation='relu'))
+    model.add(tf.keras.layers.MaxPooling2D((2, 2)))
+    model.add(tf.keras.layers.Dropout(0.4))
+    model.add(tf.keras.layers.LayerNormalization())
+    model.add(tf.keras.layers.Flatten())
+    model.add(tf.keras.layers.Dense(constants.domain*2, activation='relu'))
+    model.add(tf.keras.layers.Dropout(0.4)),
+    model.add(tf.keras.layers.Dense(10, activation='softmax'))
+    
+    model.compile(loss='categorical_crossentropy', optimizer='RMSprop', metrics=['accuracy'])
+    return model
+
+
 def get_network():
 
     # Creates a two parts neural network: a convolutional neural network (CNN) with
@@ -54,22 +78,23 @@ def get_network():
     return model
 
 
-def train_network():
+def train_encoders(training_percentage, filename):
 
-    EPOCHS = 5
+    EPOCHS = constants.encoders_epochs
+    stages = constants.training_stages
 
     (data, labels) = get_data(one_hot=True)
 
     total = len(data)
-    step = int(total/constants.training_stages)
+    step = int(total/stages)
 
-    # Amount of data used for testing
-    ntd = total - int(total*constants.nn_training_percent)
+    # Amount of testing data
+    atd = total - int(total*training_percentage)
 
     n = 0
     stats = []
     for i in range(0, total, step):
-        j = (i + ntd) % total
+        j = (i + atd) % total
 
         if j > i:
             testing_data = data[i:j]
@@ -82,7 +107,9 @@ def train_network():
             training_data = data[j:i]
             training_labels = labels[j:i]
         
-        model = get_network()
+        model = get_encoder()
+        print('Encoder:')
+        model.summary()
 
         model.fit(training_data, training_labels,
                 batch_size=100,
@@ -91,49 +118,79 @@ def train_network():
 
         test_loss, test_acc = model.evaluate(testing_data, testing_labels)
         stats.append((test_loss, test_acc))
-
-        print('Model', i, 'test accuracy:', test_acc)
-
-        model.save(constants.model_filename(n))
+        model.save(constants.model_filename(filename, n))
         n += 1
     
     return np.array(stats)
 
 
-def obtain_features(features_fn_prefix, labels_fn_prefix, pops):
- 
+def obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
+            training_percentage, am_filling_percentage, pops):
     (data, labels) = get_data()
 
     total = len(data)
     step = int(total/constants.training_stages)
 
-    # Amount of data used for testing
-    ntd = total - int(total*constants.nn_training_percent)
+    # Amount of data used for training the networks
+    trdata = int(total*training_percentage)
+
+    # Amount of data to be used to fill the memories
+    fldata = int(total*am_filling_percentage)
+
+    # Amount of data used for testing memories
+    tedata = total - trdata - fldata
 
     n = 0
     for i in range(0, total, step):
-        j = (i + ntd) % total
+        j = (i + tedata) % total
 
         if j > i:
             testing_data = data[i:j]
             testing_labels = labels[i:j]
+            other_data = np.concatenate((data[0:i], data[j:total]), axis=0)
+            other_labels = np.concatenate((labels[0:i], labels[j:total]), axis=0)
+            training_data = other_data[:trdata]
+            training_labels = other_labels[:trdata]
+            filling_data = other_data[trdata:]
+            filling_labels = other_labels[trdata:]
         else:
             testing_data = np.concatenate((data[0:j], data[i:total]), axis=0)
             testing_labels = np.concatenate((labels[0:j], labels[i:total]), axis=0)
+            training_data = data[j:j+trdata]
+            training_labels = labels[j:j+trdata]
+            filling_data = data[j+trdata:i]
+            filling_labels = labels[j+trdata:i]
  
         # Recreate the exact same model, including its weights and the optimizer
-        model = tf.keras.models.load_model(constants.model_filename(n))
+        model = tf.keras.models.load_model(constants.model_filename(model_prefix, n))
 
         # Drop the last layers of the full connected neural network part.
         for i in range(pops):
             model.pop()
- 
-        features = model.predict(testing_data)
+        
+        training_features = model.predict(training_data)
+        if len(filling_data) > 0:
+            filling_features = model.predict(filling_data)
+        else:
+            r, c = training_features.shape
+            filling_features = np.zeros((0, c))
+        testing_features = model.predict(testing_data)
 
-        feat_filename = constants.data_filename(features_fn_prefix, n)
-        labl_filename = constants.data_filename(labels_fn_prefix, n)
-        np.save(feat_filename, features)
-        np.save(labl_filename, testing_labels)
+        dict = {
+            constants.training_suffix: (training_data, training_features, training_labels),
+            constants.filling_suffix : (filling_data, filling_features, filling_labels),
+            constants.testing_suffix : (testing_data, testing_features, testing_labels)
+            }
+
+        for suffix in dict:
+            data_fn = constants.data_filename(data_prefix+suffix, n)
+            features_fn = constants.data_filename(features_prefix+suffix, n)
+            labels_fn = constants.data_filename(labels_prefix+suffix, n)
+
+            d, f, l = dict[suffix]
+            np.save(data_fn, d)
+            np.save(features_fn, f)
+            np.save(labels_fn, l)
 
         n += 1
 

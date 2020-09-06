@@ -108,7 +108,7 @@ def get_label(memories, entropies = None):
 
     # Random selection
     if entropies is None:
-        i = random.randrange(len(memories))
+        i = random.atddrange(len(memories))
         return memories[i]
     else:
         i = memories[0] 
@@ -219,7 +219,7 @@ def get_ams_results(midx, msize, domain, lpm, trf, tef, trl, tel):
     return (midx, measures, entropy, behaviour)
     
 
-def test_memories(domain, experiment):
+def test_memories(domain, prefix, experiment):
 
     average_entropy = []
     stdev_entropy = []
@@ -244,17 +244,26 @@ def test_memories(domain, experiment):
     for i in range(constants.training_stages):
         gc.collect()
 
-        feat_filename = constants.data_filename(constants.features_fn_prefix, i)
-        labl_filename = constants.data_filename(constants.labels_fn_prefix, i)
+        if prefix == constants.partial_prefix:
+            suffix = constants.filling_suffix
+        elif prefix == constants.full_prefix:
+            suffix = constants.training_suffix
 
-        data = np.load(feat_filename)
-        labels = np.load(labl_filename)
-        j = int(len(data)*constants.am_training_percent)
+        training_features_filename = prefix + constants.features_prefix + suffix        
+        training_features_filename = constants.data_filename(training_features_filename, i)
+        training_labels_filename = prefix + constants.labels_prefix + suffix        
+        training_labels_filename = constants.data_filename(training_labels_filename, i)
 
-        training_features = data[:j]
-        training_labels = labels[:j]
-        testing_features = data[j:]
-        testing_labels = labels[j:]
+        suffix = constants.testing_suffix
+        testing_features_filename = prefix + constants.features_prefix + suffix        
+        testing_features_filename = constants.data_filename(testing_features_filename, i)
+        testing_labels_filename = prefix + constants.labels_prefix + suffix        
+        testing_labels_filename = constants.data_filename(testing_labels_filename, i)
+
+        training_features = np.load(training_features_filename)
+        training_labels = np.load(training_labels_filename)
+        testing_features = np.load(testing_features_filename)
+        testing_labels = np.load(testing_labels_filename)
 
         measures_per_size = np.zeros((len(constants.memory_sizes), \
             n_memories, constants.n_measures), dtype=np.float64)
@@ -633,25 +642,57 @@ def test_recalling(domain, experiment):
 ##############################################################################
 # Main section
 
-TRAIN_NN = -1
-GET_FEATURES = 0
-FIRST_EXP = 1
-SECOND_EXP = 2
-THIRD_EXP = 3
+TRAIN_NN_FULL = -3
+TRAIN_NN_PARTIAL = -2
+GET_FEATURES_FULL = -1
+GET_FEATURES_PARTIAL = 0
+FIRST_EXP_FULL = 10
+FIRST_EXP_PARTIAL = 1
+SECOND_EXP_FULL = 20
+SECOND_EXP_PARTIAL = 2
+THIRD_EXP_FULL = 30
+THIRD_EXP_PARTIAL = 3
+FOURTH_EXP_FULL = 40
+FOURTH_EXP_PARTIAL = 4
 
+MIN_EXPERIMENT = 1
+MAX_EXPERIMENT = 4
 
 def main(action):
-    if action == TRAIN_NN:
+    if (action == TRAIN_NN_FULL) or (action == TRAIN_NN_PARTIAL):
         # Trains a neural network with those sections of data
-        loss_acc = convnet.train_network()
-        np.savetxt(constants.csv_filename('neural_networks_stats'), loss_acc, delimiter=',')
-    elif action == GET_FEATURES:
+        training_percentage = constants.nn_training_percent
+        prefix = constants.partial_prefix
+        if action == TRAIN_NN_FULL:
+            training_percentage += constants.am_filling_percent
+            prefix = constants.full_prefix
+        model_prefix = prefix + constants.encoder_prefix
+        stats_prefix = prefix + constants.stats_encoder_prefix
+
+        loss_acc = convnet.train_encoders(training_percentage, model_prefix)
+        np.savetxt(constants.csv_filename(stats_prefix), loss_acc, delimiter=',')
+    elif (action == GET_FEATURES_FULL) or (action == GET_FEATURES_PARTIAL):
         # Generates features for the data sections using the previously generate neural network
-        convnet.obtain_features(constants.features_fn_prefix, constants.labels_fn_prefix, 3)
-    elif (action == FIRST_EXP) or (action == SECOND_EXP):
+        training_percentage = constants.nn_training_percent
+        am_filling_percentage = constants.am_filling_percent
+        prefix = constants.partial_prefix
+        if action == GET_FEATURES_FULL:
+            training_percentage += constants.am_filling_percent
+            am_filling_percentage = 0.0
+            prefix = constants.full_prefix
+        model_prefix = prefix + constants.encoder_prefix
+        features_prefix = prefix + constants.features_prefix
+        labels_prefix = prefix + constants.labels_prefix
+        data_prefix = prefix + constants.data_prefix
+
+        convnet.obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
+            training_percentage, am_filling_percentage, 3)
+    elif (action == FIRST_EXP_PARTIAL) or (action == SECOND_EXP_PARTIAL):
         # The domain size, equal to the size of the output layer of the network.
-        test_memories(constants.domain, action)
-    else:
+        test_memories(constants.domain, constants.partial_prefix, action)
+    elif (action == FIRST_EXP_FULL) or (action == SECOND_EXP_FULL):
+        test_memories(constants.domain, constants.full_prefix, int(action/10))
+    elif (action == THIRD_EXP_FULL) or (action == THIRD_EXP_PARTIAL):
         test_recalling(constants.domain, action)
 
 
@@ -659,24 +700,34 @@ if __name__== "__main__" :
 
     parser = argparse.ArgumentParser(description='Associative Memory Experimenter.')
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('-n', action='store_const', const=TRAIN_NN, dest='action',
-                        help='train the neural network')
-    group.add_argument('-f', action='store_const', const=GET_FEATURES, dest='action',
-                        help='get data features using the neural network')
-    group.add_argument('-e', nargs='?', dest='n', type=int, 
-                        help='run the experiment with that number')
+    group.add_argument('-n', action='store_const', const=TRAIN_NN_PARTIAL, dest='action',
+                        help='train the neural networks, separating NN and AM training data (Separate Data NN).')
+    group.add_argument('-N', action='store_const', const=TRAIN_NN_FULL, dest='action',
+                        help='train the neural networks with standard MNIST distribution (Full Data NN).')
+    group.add_argument('-f', action='store_const', const=GET_FEATURES_PARTIAL, dest='action',
+                        help='get data features using the separate data neural networks.')
+    group.add_argument('-F', action='store_const', const=GET_FEATURES_FULL, dest='action',
+                        help='get data features using the full data neural networks.')
+    group.add_argument('-e', nargs='?', dest='m', type=int, 
+                        help='run the experiment with that number, using separate data neural networks.')
+    group.add_argument('-E', nargs='?', dest='n', type=int, 
+                        help='run the experiment with that number, using full data neural networks.')
 
     args = parser.parse_args()
     action = args.action
+    m = args.m
     n = args.n
     
     if action is None:
+        e = m if n is None else n
         # An experiment was chosen
-        if (n < FIRST_EXP) or (n > THIRD_EXP):
-            print_error("There are only three experiments available, numbered 1, 2, and 3.")
+        if (e < MIN_EXPERIMENT) or (e > MAX_EXPERIMENT):
+            print_error("There are only {1} experiments available, numbered consecutively from from {0}.".format(
+                MIN_EXPERIMENT, MAX_EXPERIMENT
+            ))
             exit(1)
         else:
-            main(n)
+            main(m if n is None else int(n*10))
     else:
         main(action)
 

@@ -2,49 +2,59 @@
 run_path = './runs'
 idx_digits = 3
 
-def filename(s, idx = None, e = ''):
+def filename(s, idx = None, extension = ''):
     """ Returns a file name in run_path directory with a given extension and an index
     """
     if idx is None:
-        return run_path + '/' + s + e
+        return run_path + '/' + s + extension
     else:
-        return run_path + '/' + s + '-' + str(idx).zfill(3) + e
+        return run_path + '/' + s + '-' + str(idx).zfill(3) + extension
 
 
-def csv_filename(s, i = None):
+def csv_filename(s, idx = None):
     """ Returns a file name for csv(i) in run_path directory
     """
-    return filename(s, i, '.csv')
+    return filename(s, idx, '.csv')
 
 
-def data_filename(s, i = None):
+def data_filename(s, idx = None):
     """ Returns a file name for csv(i) in run_path directory
     """
-    return filename(s, i, '.npy')
+    return filename(s, idx, '.npy')
 
 
-def picture_filename(s, i = None):
+def picture_filename(s, idx = None):
     """ Returns a file name for csv(i) in run_path directory
     """
-    return filename(s, i, '.png')
+    return filename(s, idx, '.png')
 
 
-# Models (neural networks).
-full_model_filename = 'full_model'
-
-def model_filename(n):
-    return filename(full_model_filename, n)
+def model_filename(s, idx = None):
+    return filename(s, idx)
 
 
-# Features and labels.
-features_fn_prefix = 'features'
-labels_fn_prefix = 'labels'
-memories_fn_prefix = 'memories'
+
+# Categories prefixes.
+encoder_prefix = 'encoder'
+stats_encoder_prefix = 'encoder_stats'
+data_prefix = 'data'
+features_prefix = 'features'
+labels_prefix = 'labels'
+memories_prefix = 'memories'
+
+full_prefix = 'full-'
+partial_prefix = 'partial-'
+
+# Categories suffixes.
+training_suffix = '-training'
+filling_suffix = '-filling'
+testing_suffix = '-testing'
 
 training_stages = 10
-nn_training_percent = 60.0/70.0
-am_training_percent = 20.0/30.0
-am_filling_percent = 0.1
+encoders_epochs = 10
+nn_training_percent = 40.0/70.0
+am_filling_percent = 20.0/70.0
+# am_filling_percent = 0.1
 
 domain = 64
 

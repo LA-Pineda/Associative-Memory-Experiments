@@ -52,7 +52,6 @@ def get_encoder():
     model.compile(loss='categorical_crossentropy', optimizer='RMSprop', metrics=['accuracy'])
 
     print('Encoder:')
-    model.summary()
     return model
 
 
