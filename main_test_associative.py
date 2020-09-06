@@ -241,13 +241,13 @@ def test_memories(domain, prefix, experiment):
     labels_x_memory = constants.labels_per_memory[experiment]
     n_memories = int(constants.n_labels/labels_x_memory)
 
+    if prefix == constants.partial_prefix:
+        suffix = constants.filling_suffix
+    elif prefix == constants.full_prefix:
+        suffix = constants.training_suffix
+
     for i in range(constants.training_stages):
         gc.collect()
-
-        if prefix == constants.partial_prefix:
-            suffix = constants.filling_suffix
-        elif prefix == constants.full_prefix:
-            suffix = constants.training_suffix
 
         training_features_filename = prefix + constants.features_prefix + suffix        
         training_features_filename = constants.data_filename(training_features_filename, i)
@@ -514,28 +514,45 @@ def get_stdev(d):
     return stdevs    
     
 
-def test_recalling_fold(n_memories, mem_size, domain, experiment, fold):
+def test_recalling_fold(n_memories, mem_size, domain, prefix, experiment, fold):
     # Create the required associative memories.
     ams = dict.fromkeys(range(n_memories))
     for j in ams:
         ams[j] = AssociativeMemory(domain, mem_size)
 
-    feat_filename = constants.data_filename(constants.features_fn_prefix, fold)
-    labl_filename = constants.data_filename(constants.labels_fn_prefix, fold)
+    if prefix == constants.partial_prefix:
+        suffix = constants.filling_suffix
+    elif prefix == constants.full_prefix:
+        suffix = constants.training_suffix
 
-    data = np.load(feat_filename)
-    labels = np.load(labl_filename)
-    
-    maximum = data.max()
-    minimum = data.min()
+    training_features_filename = prefix + constants.features_prefix + suffix        
+    training_features_filename = constants.data_filename(training_features_filename, fold)
+    training_labels_filename = prefix + constants.labels_prefix + suffix        
+    training_labels_filename = constants.data_filename(training_labels_filename, fold)
 
-    total = int(len(data)*constants.am_training_percent)
+    suffix = constants.testing_suffix
+    testing_features_filename = prefix + constants.features_prefix + suffix        
+    testing_features_filename = constants.data_filename(testing_features_filename, fold)
+    testing_labels_filename = prefix + constants.labels_prefix + suffix        
+    testing_labels_filename = constants.data_filename(testing_labels_filename, fold)
+
+    features = np.load(training_features_filename)
+    labels = np.load(training_labels_filename)
+    testing_features = np.load(testing_features_filename)
+    testing_labels = np.load(testing_labels_filename)
+
+    training_max = features.max()
+    testing_max = testing_features.max()
+    training_min = features.min()
+    testing_min = testing_features.min()
+
+    maximum = training_max if training_max > testing_max else testing_max
+    minimum = training_min if training_min < testing_min else testing_min
+
+    total = len(features)
     percents = np.array([1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 100.0])
     steps = np.round(total*percents/100.0).astype(int)
     xlabels = percents.tolist()
-
-    testing_features = data[total:]
-    testing_labels = labels[total:]
 
     stage_recalls = {}
     stage_entropies = {}
@@ -546,7 +563,7 @@ def test_recalling_fold(n_memories, mem_size, domain, experiment, fold):
     k = 0
     for j in range(len(steps)):
         k += steps[j]
-        training_features = data[i:k]
+        training_features = features[i:k]
         training_labels = labels[i:k]
         i = k
 
@@ -568,9 +585,8 @@ def test_recalling_fold(n_memories, mem_size, domain, experiment, fold):
     return  stage_recalls, stage_entropies, stage_mprecision, stage_mrecall, xlabels
 
 
-def test_recalling(domain, experiment):
+def test_recalling(domain, prefix, mem_size, experiment):
     n_memories = constants.n_labels
-    mem_size = constants.ideal_memory_size
 
     all_recalls = {}
     all_entropies = {}
@@ -580,7 +596,7 @@ def test_recalling(domain, experiment):
     xlabels = []
 
     list_results = Parallel(n_jobs=constants.n_jobs, verbose=50)(
-        delayed(test_recalling_fold)(n_memories, mem_size, domain, experiment, fold) \
+        delayed(test_recalling_fold)(n_memories, mem_size, domain, prefix, experiment, fold) \
             for fold in range(constants.training_stages))
 
     for stage_recalls, stage_entropies, stage_mprecision, stage_mrecall, xlbls in list_results:
@@ -604,8 +620,8 @@ def test_recalling(domain, experiment):
             a[1:(domain+1)] = features
             rows.append(a)
         rows = np.array(rows)
-        filename = constants.csv_filename(constants.memories_fn_prefix, i)
-        np.savetxt(filename, rows, delimiter=',')
+        filename = constants.data_filename(prefix+constants.memories_prefix, i)
+        np.save(filename, rows)
 
     main_avrge_entropies = get_means(all_entropies)
     main_stdev_entropies = get_stdev(all_entropies)
@@ -692,8 +708,10 @@ def main(action):
         test_memories(constants.domain, constants.partial_prefix, action)
     elif (action == FIRST_EXP_FULL) or (action == SECOND_EXP_FULL):
         test_memories(constants.domain, constants.full_prefix, int(action/10))
-    elif (action == THIRD_EXP_FULL) or (action == THIRD_EXP_PARTIAL):
-        test_recalling(constants.domain, action)
+    elif (action == THIRD_EXP_PARTIAL):
+        test_recalling(constants.domain, constants.partial_prefix, constants.partial_ideal_memory_size, action)
+    elif (action == THIRD_EXP_FULL):
+        test_recalling(constants.domain, constants.full_prefix, constants.full_ideal_memory_size, int(action/10))
 
 
 if __name__== "__main__" :
