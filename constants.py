@@ -1,3 +1,5 @@
+import os
+
 # Directory where all results are stored.
 run_path = './runs'
 idx_digits = 3
@@ -5,6 +7,13 @@ idx_digits = 3
 def filename(s, idx = None, extension = ''):
     """ Returns a file name in run_path directory with a given extension and an index
     """
+    # Create target directory & all intermediate directories if don't exists
+    try:
+        os.makedirs(run_path)    
+        print("Directory " , run_path ,  " created ")
+    except FileExistsError:
+        pass
+
     if idx is None:
         return run_path + '/' + s + extension
     else:
@@ -33,10 +42,38 @@ def model_filename(s, idx = None):
     return filename(s, idx)
 
 
+def image_filename(dir, prefix, stage, idx, label, suffix = ''):
+    # Remove '-'
+    prefix = prefix[:-1]
+
+    image_path = run_path + '/images/' + dir + '/' + prefix + '/' + 'stage_' + str(stage) + '/'
+
+    try:
+        os.makedirs(image_path)    
+        print("Directory " , image_path ,  " created ")
+    except FileExistsError:
+        pass
+
+    image_path += str(label) + '_' + str(idx).zfill(5)  + suffix + '.png'
+    return image_path
+
+
+original_suffix = '-original'
+
+
+def original_image_filename(dir, prefix, stage, idx, label):
+    return image_filename(dir, prefix, stage, idx, label, original_suffix)
+
+
+def produced_image_filename(dir, prefix, stage, idx, label):
+    return image_filename(dir, prefix, stage, idx, label)
+
 
 # Categories prefixes.
 encoder_prefix = 'encoder'
+decoder_prefix = 'decoder'
 stats_encoder_prefix = 'encoder_stats'
+stats_decoder_prefix = 'decoder_stats'
 data_prefix = 'data'
 features_prefix = 'features'
 labels_prefix = 'labels'
@@ -50,11 +87,15 @@ training_suffix = '-training'
 filling_suffix = '-filling'
 testing_suffix = '-testing'
 
-training_stages = 10
+testing_directory = 'test'
+memories_directory = 'memories'
+
+training_stages = 10        # 0.10 of data.
 encoders_epochs = 10
-nn_training_percent = 40.0/70.0
-am_filling_percent = 20.0/70.0
-# am_filling_percent = 0.1
+decoders_epochs = 10
+nn_training_percent = 0.57  # 0.10 + 0.57 = 0.67
+am_filling_percent = 0.33   # 0.67 + 0.33 = 1.0
+
 
 domain = 64
 

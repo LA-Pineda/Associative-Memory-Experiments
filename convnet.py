@@ -1,6 +1,9 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.utils import to_categorical
+from joblib import Parallel, delayed
+import matplotlib.pyplot as plt
+import png
 
 import constants
 
@@ -49,32 +52,18 @@ def get_encoder():
     return model
 
 
-def get_network():
-
-    # Creates a two parts neural network: a convolutional neural network (CNN) with
-    # three main layers, and a full connected neural network.
+def get_decoder():
     model = tf.keras.models.Sequential()
-    model.add(tf.keras.layers.Conv2D(32,kernel_size=3, activation='relu', padding='same', input_shape=(28, 28, 1)))
-    model.add(tf.keras.layers.MaxPooling2D((2, 2)))
-    # model.add(tf.keras.layers.Dropout(0.4))
-    model.add(tf.keras.layers.Conv2D(32,kernel_size=3, activation='relu'))
-    model.add(tf.keras.layers.MaxPooling2D((2, 2)))
+    input_img = tf.keras.layers.Input(shape=(constants.domain, ))
+    model.add(tf.keras.layers.Dense(units=7*7*32, activation='relu', input_shape=(64, )))
+    model.add(tf.keras.layers.Reshape((7, 7, 32)))
+    model.add(tf.keras.layers.Conv2DTranspose(64, kernel_size=3, strides=2, padding='same', activation='relu'))
     model.add(tf.keras.layers.Dropout(0.4))
-    model.add(tf.keras.layers.Conv2D(64, kernel_size=5, activation='relu'))
-    model.add(tf.keras.layers.MaxPooling2D((2, 2)))
+    model.add(tf.keras.layers.Conv2DTranspose(32, kernel_size=3, strides=2, padding='same', activation='relu'))
     model.add(tf.keras.layers.Dropout(0.4))
-    model.add(tf.keras.layers.LayerNormalization())
-    model.add(tf.keras.layers.Flatten())
-    model.add(tf.keras.layers.Dense(constants.domain*2, activation='relu'))
-    model.add(tf.keras.layers.Dropout(0.4)),
-    model.add(tf.keras.layers.Dense(10, activation='softmax'))
-    
-    model.compile(loss='categorical_crossentropy',
-                optimizer='RMSprop',
-                metrics=['accuracy'])
+    model.add(tf.keras.layers.Conv2D(1, kernel_size=3, strides=1, activation='sigmoid', padding='same'))
 
-    model.summary()
-
+    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
     return model
 
 
@@ -124,6 +113,78 @@ def train_encoders(training_percentage, filename):
     return np.array(stats)
 
 
+def store_images(original, produced, directory, prefix, stage, idx, label):
+    original_filename = constants.original_image_filename(directory,
+        prefix, stage, idx, label)
+    produced_filename = constants.produced_image_filename(directory,
+        prefix, stage, idx, label)
+
+    pixels = original.reshape(28,28) * 255
+    pixels = pixels.round().astype(np.uint8)
+    png.from_array(pixels, 'L;8').save(original_filename)
+
+    pixels = produced.reshape(28,28) * 255
+    pixels = pixels.round().astype(np.uint8)
+    png.from_array(pixels, 'L;8').save(produced_filename)
+
+    # plt.imshow(testing_labels[j].reshape(28,28))
+    # plt.gray()
+    # fig = plt.gcf()
+    # fig.savefig(original_filename)
+    # plt.imshow(produced_images[j].reshape((28,28)))
+    # plt.gray()
+    # fig = plt.gcf()
+    # fig.savefig(produced_filename)
+
+ 
+
+def train_decoders(prefix, filename, suffix):
+
+    EPOCHS = constants.decoders_epochs
+    stats = []
+
+    for i in range(constants.training_stages):
+        training_data_filename = prefix + constants.features_prefix + suffix
+        training_data_filename = constants.data_filename(training_data_filename, i)
+        training_labels_filename = prefix + constants.data_prefix + suffix
+        training_labels_filename = constants.data_filename(training_labels_filename, i)
+
+        testing_data_filename = prefix + constants.features_prefix + constants.testing_suffix
+        testing_data_filename = constants.data_filename(testing_data_filename, i)
+        testing_labels_filename = prefix + constants.data_prefix + constants.testing_suffix
+        testing_labels_filename = constants.data_filename(testing_labels_filename, i)
+
+        training_data = np.load(training_data_filename)
+        training_labels = np.load(training_labels_filename)
+        testing_data = np.load(testing_data_filename)
+        testing_labels = np.load(testing_labels_filename)
+        training_labels.round()
+        decoder = get_decoder()
+        decoder.fit(training_data, training_labels,
+            batch_size=100,
+            epochs=EPOCHS,
+            verbose=2)
+
+        test_loss, test_acc = decoder.evaluate(testing_data, testing_labels)
+        stats.append((test_loss, test_acc))
+
+        produced_images = decoder.predict(testing_data)        
+
+        real_labels_filename = prefix + constants.labels_prefix + constants.testing_suffix
+        real_labels_filename = constants.data_filename(real_labels_filename, i)
+        real_labels = np.load(real_labels_filename)
+        n = len(real_labels)
+
+        Parallel(n_jobs=constants.n_jobs, verbose=50)( \
+            delayed(store_images)(original, produced, constants.testing_directory, prefix, i, j, label) \
+                for (j, original, produced, label) in \
+                    zip(range(n), testing_labels, produced_images, real_labels))
+
+        decoder.save(constants.model_filename(filename,i))
+
+    return np.array(stats)
+
+
 def obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
             training_percentage, am_filling_percentage, pops):
     (data, labels) = get_data()
@@ -138,7 +199,7 @@ def obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
     fldata = int(total*am_filling_percentage)
 
     # Amount of data used for testing memories
-    tedata = total - trdata - fldata
+    tedata = step
 
     n = 0
     for i in range(0, total, step):
