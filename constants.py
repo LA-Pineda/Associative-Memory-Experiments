@@ -58,6 +58,23 @@ def image_filename(dir, prefix, stage, idx, label, suffix = ''):
     return image_path
 
 
+def memory_filename(dir, prefix, msize, stage, idx, label):
+    # Remove '-'
+    prefix = prefix[:-1]
+
+    image_path = run_path + '/images/' + dir + '/' + prefix + '/' + 'msize_' + str(msize) + '/'
+    image_path += 'stage_' + str(stage) + '/'
+
+    try:
+        os.makedirs(image_path)    
+        print("Directory " , image_path ,  " created ")
+    except FileExistsError:
+        pass
+
+    image_path += str(label) + '_' + str(idx).zfill(5) + '.png'
+    return image_path
+
+
 original_suffix = '-original'
 
 
@@ -67,6 +84,10 @@ def original_image_filename(dir, prefix, stage, idx, label):
 
 def produced_image_filename(dir, prefix, stage, idx, label):
     return image_filename(dir, prefix, stage, idx, label)
+
+
+def produced_memory_filename(dir, prefix, msize, stage, idx, label):
+    return memory_filename(dir, prefix, msize, stage, idx, label)
 
 
 # Categories prefixes.
@@ -86,6 +107,7 @@ partial_prefix = 'partial-'
 training_suffix = '-training'
 filling_suffix = '-filling'
 testing_suffix = '-testing'
+memory_suffix = '-memories'
 
 testing_directory = 'test'
 memories_directory = 'memories'
@@ -123,6 +145,7 @@ mean_responses_idx = 6
 n_behaviours = 7
 
 memory_sizes = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
+memory_fills = [1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 100.0]
 partial_ideal_memory_size = 20
 full_ideal_memory_size = 60
 

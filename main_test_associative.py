@@ -427,7 +427,7 @@ def test_memories(domain, prefix, experiment):
     print('Test complete')
 
 
-def get_recalls(ams, msize, domain, min, max, trf, trl, tef, tel):
+def get_recalls(ams, msize, domain, min, max, trf, trl, tef, tel, idx):
 
     trf_rounded = np.round((trf - min) * (msize - 1) / (max - min)).astype(np.int16)
     tef_rounded = np.round((tef - min) * (msize - 1) / (max - min)).astype(np.int16)
@@ -453,7 +453,7 @@ def get_recalls(ams, msize, domain, min, max, trf, trl, tef, tel):
 
     all_recalls = []
     # Recover memories
-    for features, label in zip(tef_rounded, tel):
+    for n, features, label in zip(range(len(tef_rounded)), tef_rounded, tel):
         memories = []
         recalls ={}
 
@@ -478,11 +478,11 @@ def get_recalls(ams, msize, domain, min, max, trf, trl, tef, tel):
         if (len(memories) == 0):
             # Register empty case
             undefined = np.full(domain, ams[0].undefined)
-            all_recalls.append((label, undefined))
+            all_recalls.append((idx, n, label, undefined))
         else:
             l = get_label(memories, entropy)
             features = recalls[l]*(max-min)*1.0/(msize-1) + min
-            all_recalls.append((label, features))
+            all_recalls.append((idx, n, label, features))
 
     for i in range(n_mems):
         positives = cms[i][TP] + cms[i][FP]
@@ -568,7 +568,7 @@ def test_recalling_fold(n_memories, mem_size, domain, prefix, experiment, fold):
         i = k
 
         recalls, measures, entropies = get_recalls(ams, mem_size, domain, minimum, maximum, \
-            training_features, training_labels, testing_features, testing_labels)
+            training_features, training_labels, testing_features, testing_labels, fold)
 
         # A list of tuples (label, features)
         stage_recalls[j] = recalls
@@ -613,15 +613,19 @@ def test_recalling(domain, prefix, mem_size, experiment):
 
     for i in all_recalls:
         list_tups = all_recalls[i]
-        rows = []
-        for (label, features) in list_tups:
-            a = np.zeros((domain + 1, ))
-            a[0] = label
-            a[1:(domain+1)] = features
-            rows.append(a)
-        rows = np.array(rows)
-        filename = constants.data_filename(prefix+constants.memories_prefix, i)
-        np.save(filename, rows)
+        tags = []
+        memories = []
+        for (stage, idx, label, features) in list_tups:
+            tags.append((stage, idx, label))
+            memories.append(np.array(features))
+        
+        tags = np.array(tags)
+        memories = np.array(memories)
+        memories_filename = constants.data_filename(prefix+constants.memories_prefix, i)
+        np.save(memories_filename, memories)
+        tags_filename = prefix + constants.labels_prefix + constants.memory_suffix
+        tags_filename = constants.data_filename(tags_filename, i)
+        np.save(tags_filename, tags)
 
     main_avrge_entropies = get_means(all_entropies)
     main_stdev_entropies = get_stdev(all_entropies)
@@ -724,6 +728,10 @@ def main(action):
         test_recalling(constants.domain, constants.partial_prefix, constants.partial_ideal_memory_size, action)
     elif (action == THIRD_EXP_FULL):
         test_recalling(constants.domain, constants.full_prefix, constants.full_ideal_memory_size, int(action/10))
+    elif (action == FOURTH_EXP_PARTIAL):
+        convnet.remember(constants.partial_prefix)
+    elif (action == FOURTH_EXP_FULL):
+        convnet.remember(constants.full_prefix)
 
 
 if __name__== "__main__" :

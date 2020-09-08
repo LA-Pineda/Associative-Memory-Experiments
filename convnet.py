@@ -126,16 +126,16 @@ def store_images(original, produced, directory, prefix, stage, idx, label):
     pixels = produced.reshape(28,28) * 255
     pixels = pixels.round().astype(np.uint8)
     png.from_array(pixels, 'L;8').save(produced_filename)
+ 
 
-    # plt.imshow(testing_labels[j].reshape(28,28))
-    # plt.gray()
-    # fig = plt.gcf()
-    # fig.savefig(original_filename)
-    # plt.imshow(produced_images[j].reshape((28,28)))
-    # plt.gray()
-    # fig = plt.gcf()
-    # fig.savefig(produced_filename)
+def store_memories(produced, directory, prefix, msize, labels):
+    (stage, idx, label) = labels
+    produced_filename = constants.produced_memory_filename(directory,
+        prefix, msize, stage, idx, label)
 
+    pixels = produced.reshape(28,28) * 255
+    pixels = pixels.round().astype(np.uint8)
+    png.from_array(pixels, 'L;8').save(produced_filename)
  
 
 def train_decoders(prefix, filename, suffix):
@@ -254,4 +254,27 @@ def obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
             np.save(labels_fn, l)
 
         n += 1
+
+
+def remember(prefix):
+
+    stats = []
+    for idx, _ in enumerate(constants.memory_fills):
+        memories_filename = prefix + constants.memories_prefix
+        memories_filename = constants.data_filename(memories_filename, idx)
+        labels_filename = prefix + constants.labels_prefix + constants.memory_suffix
+        labels_filename = constants.data_filename(labels_filename, idx)
+        decoder_filename = prefix + constants.decoder_prefix
+        decoder_filename = constants.model_filename(decoder_filename, idx)
+
+        memories = np.load(memories_filename)
+        labels = np.load(labels_filename)
+        decoder = tf.keras.models.load_model(decoder_filename)
+        produced_images = decoder.predict(memories)        
+
+        n = len(memories)
+
+        Parallel(n_jobs=constants.n_jobs, verbose=50)( \
+            delayed(store_memories)(produced, constants.memories_directory, prefix, idx, label) \
+                for (produced, label) in zip(produced_images, labels))
 
