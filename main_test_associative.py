@@ -100,8 +100,40 @@ def plot_behs_graph(no_response, no_correct, no_chosen, correct, action=None):
 
     plt.legend(loc=0)
     plt.grid(axis='y')
-
     plt.savefig(constants.picture_filename('graph_behaviours_MEAN-{0}'.format(action)), dpi=500)
+
+
+def plot_features_graph(prefix, domain, means, stdevs):
+    ymin = np.PINF
+    ymax = np.NINF
+    for i in constants.all_labels:
+        n = (means[i] - stdevs[i]).min()
+        x = (means[i] + stdevs[i]).max()
+        ymin = ymin if ymin < n else n
+        ymax = ymax if ymax > x else x
+
+    main_step = 100.0 / domain
+    xrange = np.arange(0, 100, main_step)
+    xticks = np.arange(0, 100, main_step)
+    fmts = ['r-h', 'b-*', 'g-s', 'y-x', 'm-d', 'c-h', 'r-*', 'b--s', 'g--x', 'y--d']
+
+    for i in constants.all_labels:
+        plt.clf()
+        plt.figure(figsize=(12,5))
+
+        plt.errorbar(xrange, means[i], fmt=fmts[i], yerr=stdevs[i], label=str(i))
+        plt.xlim(0, 100)
+        plt.ylim(ymin, ymax)
+        plt.xticks(xrange, labels='')
+
+        plt.xlabel('Features')
+        plt.ylabel('Values')
+        plt.legend(loc='right')
+        plt.grid(True)
+
+        filename = prefix + constants.features_prefix + '-' + str(i)
+        plt.savefig(constants.picture_filename(filename), dpi=500)
+
 
 
 def get_label(memories, entropies = None):
@@ -550,7 +582,7 @@ def test_recalling_fold(n_memories, mem_size, domain, prefix, experiment, fold):
     minimum = training_min if training_min < testing_min else testing_min
 
     total = len(features)
-    percents = np.array([1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 100.0])
+    percents = np.array(constants.memory_fills)
     steps = np.round(total*percents/100.0).astype(int)
     xlabels = percents.tolist()
 
@@ -655,13 +687,58 @@ def test_recalling(domain, prefix, mem_size, experiment):
     print('Test complete')
 
 
+def get_all_data(prefix, domain):
+    data = None
 
+    for stage in range(constants.training_stages):
+        filename = constants.data_filename(prefix, stage)
+        if data is None:
+            data = np.load(filename)
+        else:
+            newdata = np.load(filename)
+            data = np.concatenate((data, newdata), axis=0)
 
+    return data
 
+def characterize_features(prefix, domain):
+    features_prefix = prefix + constants.features_prefix
+    ff_filename = features_prefix + constants.filling_suffix
+    tf_filename = features_prefix + constants.testing_suffix
 
+    labels_prefix = prefix + constants.labels_prefix
+    fl_filename = labels_prefix + constants.filling_suffix
+    tl_filename = labels_prefix + constants.testing_suffix
+
+    features = np.concatenate((get_all_data(ff_filename, domain),
+        get_all_data(tf_filename, domain)), axis=0)
+    
+    labels = np.concatenate((get_all_data(fl_filename, 1),
+        get_all_data(tl_filename, 1)), axis=0)
+
+    d = {}
+    for i in constants.all_labels:
+        d[i] = []
+
+    for (i, feats) in zip(labels, features):
+        d[i].append(feats)
+
+    means = {}
+    stdevs = {}
+    for i in constants.all_labels:
+        d[i] = np.array(d[i])
+        means[i] = np.mean(d[i], axis=0)
+        stdevs[i] = np.std(d[i], axis=0)
+
+    plot_features_graph(prefix, domain, means, stdevs)
+    
+    
+
+    
 ##############################################################################
 # Main section
 
+CHARACTERIZE_FULL = -7
+CHARACTERIZE_PARTIAL = -6
 TRAIN_DECODER_FULL = -5
 TRAIN_DECODER_PARTIAL = -4
 TRAIN_ENCODER_FULL = -3
@@ -719,6 +796,12 @@ def main(action):
 
         convnet.obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
             training_percentage, am_filling_percentage, 3)
+    elif action == CHARACTERIZE_PARTIAL:
+        # The domain size, equal to the size of the output layer of the network.
+        characterize_features(constants.partial_prefix, constants.domain)
+    elif action == CHARACTERIZE_FULL:
+        # The domain size, equal to the size of the output layer of the network.
+        characterize_features(constants.full_prefix, constants.domain)
     elif (action == FIRST_EXP_PARTIAL) or (action == SECOND_EXP_PARTIAL):
         # The domain size, equal to the size of the output layer of the network.
         test_memories(constants.domain, constants.partial_prefix, action)
@@ -742,14 +825,18 @@ if __name__== "__main__" :
                         help='train the neural networks, separating NN and AM training data (Separate Data NN).')
     group.add_argument('-N', action='store_const', const=TRAIN_ENCODER_FULL, dest='action',
                         help='train the neural networks with standard MNIST distribution (Full Data NN).')
-    group.add_argument('-d', action='store_const', const=TRAIN_DECODER_PARTIAL, dest='action',
-                        help='train decoder networks, separating NN and AM training data (Separate Data NN).')
-    group.add_argument('-D', action='store_const', const=TRAIN_DECODER_FULL, dest='action',
-                        help='train decoder networks with standard MNIST distribution (Full Data NN).')
     group.add_argument('-f', action='store_const', const=GET_FEATURES_PARTIAL, dest='action',
                         help='get data features using the separate data neural networks.')
     group.add_argument('-F', action='store_const', const=GET_FEATURES_FULL, dest='action',
                         help='get data features using the full data neural networks.')
+    group.add_argument('-c', action='store_const', const=CHARACTERIZE_PARTIAL, dest='action',
+                        help='characterize the features from partial data neural networks by class.')
+    group.add_argument('-C', action='store_const', const=CHARACTERIZE_FULL, dest='action',
+                        help='characterize the features from full data neural networks by class.')
+    group.add_argument('-d', action='store_const', const=TRAIN_DECODER_PARTIAL, dest='action',
+                        help='train decoder networks, separating NN and AM training data (Separate Data NN).')
+    group.add_argument('-D', action='store_const', const=TRAIN_DECODER_FULL, dest='action',
+                        help='train decoder networks with standard MNIST distribution (Full Data NN).')
     group.add_argument('-e', nargs='?', dest='m', type=int, 
                         help='run the experiment with that number, using separate data neural networks.')
     group.add_argument('-E', nargs='?', dest='n', type=int, 
