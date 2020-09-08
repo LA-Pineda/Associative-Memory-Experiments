@@ -103,15 +103,21 @@ class AssociativeMemory(object):
 
 
     # Choose a value for feature i.
-    def choose(self, i):
+    def choose(self, i, v):
         candidates = []
         
         for j in range(self.m):
             if self.relation[j, i]:
                 candidates.append(j)
         
-        if len(candidates) != 0:
-            k = random.randrange(len(candidates))
+        n = len(candidates)
+        if n != 0:
+            mode = 0
+            for j in range(n):
+                if v == candidates[j]:
+                    mode = j
+                    break
+            k = round(random.triangular(0, n-1, mode))
             return candidates[k]
         else:
             return self.undefined
@@ -126,11 +132,11 @@ class AssociativeMemory(object):
 
 
     # Reduces a relation to a function
-    def lreduce(self, relation):
+    def lreduce(self, vector):
         v = np.full(self.n, self.undefined)
 
         for i in range(self.n):
-            v[i] = self.choose(i)
+            v[i] = self.choose(i, vector[i])
         
         return v
 
@@ -169,7 +175,8 @@ class AssociativeMemory(object):
         buffer = self.containment(r_io)
 
         if np.all(buffer == True):
-            r_io = self.lreduce(r_io)
+            # r_io = self.lreduce(r_io)
+            r_io = self.lreduce(vector)
         else:
             r_io = np.full(self.n, self.undefined)
 
