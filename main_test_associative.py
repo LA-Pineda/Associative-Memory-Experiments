@@ -19,7 +19,7 @@ def print_error(*s):
 
 
 def plot_pre_graph (pre_mean, rec_mean, ent_mean, pre_std, rec_std, ent_std, \
-    tag = '', xlabels = constants.memory_sizes, xtitle = 'Range Quantization Levels', \
+    tag = '', action=None, xlabels = constants.memory_sizes, xtitle = 'Range Quantization Levels', \
         ytitle = 'Percentage [%]'):
 
     cmap = mpl.colors.LinearSegmentedColormap.from_list('mycolors',['cyan','purple'])
@@ -52,7 +52,7 @@ def plot_pre_graph (pre_mean, rec_mean, ent_mean, pre_std, rec_std, ent_std, \
     plt.savefig(constants.picture_filename(tag + 'graph_l4_MEAN-{0}'.format(action)), dpi=500)
 
 
-def plot_size_graph (response_size, size_stdev):
+def plot_size_graph (response_size, size_stdev, action=None):
     plt.clf()
 
     main_step = len(constants.memory_sizes)
@@ -69,7 +69,7 @@ def plot_size_graph (response_size, size_stdev):
     plt.savefig(constants.picture_filename('graph_size_MEAN-{0}'.format(action)), dpi=500)
 
 
-def plot_behs_graph(no_response, no_correct, no_chosen, correct):
+def plot_behs_graph(no_response, no_correct, no_chosen, correct, action=None):
 
     for i in range(len(no_response)):
         total = (no_response[i] + no_correct[i] + no_chosen[i] + correct[i])/100.0
@@ -413,16 +413,16 @@ def test_memories(domain, prefix, experiment):
         main_behaviours, delimiter=',')
 
     plot_pre_graph(main_average_precision, main_average_recall, main_average_entropy,\
-        main_stdev_precision, main_stdev_recall, main_stdev_entropy)
+        main_stdev_precision, main_stdev_recall, main_stdev_entropy, action=experiment)
 
     plot_pre_graph(main_all_average_precision, main_all_average_recall, \
         main_average_entropy, main_all_stdev_precision, main_all_stdev_recall,\
-            main_stdev_entropy, 'overall')
+            main_stdev_entropy, 'overall', action=experiment)
 
-    plot_size_graph(main_total_responses, main_total_responses_stdev)
+    plot_size_graph(main_total_responses, main_total_responses_stdev, action=experiment)
 
     plot_behs_graph(main_no_response, main_no_correct_response, main_no_correct_chosen,\
-        main_correct_chosen)
+        main_correct_chosen, action=experiment)
 
     print('Test complete')
 
@@ -646,7 +646,7 @@ def test_recalling(domain, prefix, mem_size, experiment):
 
     plot_pre_graph(main_avrge_mprecision*100, main_avrge_mrecall*100, main_avrge_entropies,\
         main_stdev_mprecision*100, main_stdev_mrecall*100, main_stdev_entropies, 'recall-', \
-            xlabels = xlabels, xtitle = 'Percentage of memory corpus')
+            xlabels = xlabels, xtitle = 'Percentage of memory corpus', action=experiment)
 
     print('Test complete')
 
