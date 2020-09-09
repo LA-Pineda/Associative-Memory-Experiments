@@ -62,8 +62,8 @@ def memory_filename(dir, prefix, msize, stage, idx, label):
     # Remove '-'
     prefix = prefix[:-1]
 
-    image_path = run_path + '/images/' + dir + '/' + prefix + '/' + 'msize_' + str(msize) + '/'
-    image_path += 'stage_' + str(stage) + '/'
+    image_path = run_path + '/images/' + dir + '/' + prefix + '/' + 'stage_' + str(stage) + '/'
+    image_path += 'msize_' + str(msize) + '/'
 
     try:
         os.makedirs(image_path)    
@@ -115,8 +115,10 @@ memories_directory = 'memories'
 training_stages = 10        # 0.10 of data.
 encoders_epochs = 10
 decoders_epochs = 10
+
 nn_training_percent = 0.57  # 0.10 + 0.57 = 0.67
 am_filling_percent = 0.33   # 0.67 + 0.33 = 1.0
+
 
 
 domain = 64

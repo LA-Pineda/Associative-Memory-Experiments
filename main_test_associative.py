@@ -459,7 +459,7 @@ def test_memories(domain, prefix, experiment):
     print('Test complete')
 
 
-def get_recalls(ams, msize, domain, min, max, trf, trl, tef, tel, idx):
+def get_recalls(ams, msize, domain, min, max, trf, trl, tef, tel, idx, last):
 
     trf_rounded = np.round((trf - min) * (msize - 1) / (max - min)).astype(np.int16)
     tef_rounded = np.round((tef - min) * (msize - 1) / (max - min)).astype(np.int16)
@@ -510,11 +510,11 @@ def get_recalls(ams, msize, domain, min, max, trf, trl, tef, tel, idx):
         if (len(memories) == 0):
             # Register empty case
             undefined = np.full(domain, ams[0].undefined)
-            all_recalls.append((idx, n, label, undefined))
+            all_recalls.append((n+last, label, undefined))
         else:
             l = get_label(memories, entropy)
             features = recalls[l]*(max-min)*1.0/(msize-1) + min
-            all_recalls.append((idx, n, label, features))
+            all_recalls.append((n+last, label, features))
 
     for i in range(n_mems):
         positives = cms[i][TP] + cms[i][FP]
@@ -584,9 +584,8 @@ def test_recalling_fold(n_memories, mem_size, domain, prefix, experiment, fold):
     total = len(features)
     percents = np.array(constants.memory_fills)
     steps = np.round(total*percents/100.0).astype(int)
-    xlabels = percents.tolist()
 
-    stage_recalls = {}
+    stage_recalls = []
     stage_entropies = {}
     stage_mprecision = {}
     stage_mrecall = {}
@@ -597,13 +596,12 @@ def test_recalling_fold(n_memories, mem_size, domain, prefix, experiment, fold):
         k += steps[j]
         training_features = features[i:k]
         training_labels = labels[i:k]
-        i = k
 
         recalls, measures, entropies = get_recalls(ams, mem_size, domain, minimum, maximum, \
-            training_features, training_labels, testing_features, testing_labels, fold)
+            training_features, training_labels, testing_features, testing_labels, fold, i)
 
-        # A list of tuples (label, features)
-        stage_recalls[j] = recalls
+        # A list of tuples (position, label, features)
+        stage_recalls += recalls
 
         # An array with entropies per memory
         stage_entropies[j] = entropies
@@ -614,7 +612,8 @@ def test_recalling_fold(n_memories, mem_size, domain, prefix, experiment, fold):
         # An array with recall per memory
         stage_mrecall[j] = measures[constants.recall_idx,:]
 
-    return  stage_recalls, stage_entropies, stage_mprecision, stage_mrecall, xlabels
+        i = k
+    return  fold, stage_recalls, stage_entropies, stage_mprecision, stage_mrecall
 
 
 def test_recalling(domain, prefix, mem_size, experiment):
@@ -625,38 +624,36 @@ def test_recalling(domain, prefix, mem_size, experiment):
     all_mprecision = {}
     all_mrecall = {}
 
-    xlabels = []
+    xlabels = constants.memory_fills
 
     list_results = Parallel(n_jobs=constants.n_jobs, verbose=50)(
         delayed(test_recalling_fold)(n_memories, mem_size, domain, prefix, experiment, fold) \
             for fold in range(constants.training_stages))
 
-    for stage_recalls, stage_entropies, stage_mprecision, stage_mrecall, xlbls in list_results:
-        xlabels = xlbls
-        for j in stage_recalls:
-            all_recalls[j] = all_recalls[j] + stage_recalls[j] \
-                if j in all_recalls.keys() else stage_recalls[j]
-            all_entropies[j] = all_entropies[j] + [stage_entropies[j]] \
-                if j in all_entropies.keys() else [stage_entropies[j]]
-            all_mprecision[j] = all_mprecision[j] + [stage_mprecision[j]] \
-                if j in all_mprecision.keys() else [stage_mprecision[j]]
-            all_mrecall[j] = all_mrecall[j] + [stage_mrecall[j]] \
-                if j in all_mrecall.keys() else [stage_mrecall[j]]
+    for fold, stage_recalls, stage_entropies, stage_mprecision, stage_mrecall in list_results:
+        all_recalds[fold] = stage_recalls
+        for msize in stage_recalls:
+            all_entropies[msize] = all_entropies[msize] + [stage_entropies[msize]] \
+                if msize in all_entropies.keys() else [stage_entropies[msize]]
+            all_mprecision[msize] = all_mprecision[msize] + [stage_mprecision[msize]] \
+                if msize in all_mprecision.keys() else [stage_mprecision[msize]]
+            all_mrecall[msize] = all_mrecall[msize] + [stage_mrecall[msize]] \
+                if msize in all_mrecall.keys() else [stage_mrecall[msize]]
 
-    for i in all_recalls:
-        list_tups = all_recalls[i]
+    for fold in all_recalls:
+        list_tups = all_recalls[fold]
         tags = []
         memories = []
-        for (stage, idx, label, features) in list_tups:
+        for (idx, label, features) in list_tups:
             tags.append((stage, idx, label))
             memories.append(np.array(features))
         
         tags = np.array(tags)
         memories = np.array(memories)
-        memories_filename = constants.data_filename(prefix+constants.memories_prefix, i)
+        memories_filename = constants.data_filename(prefix+constants.memories_prefix, fold)
         np.save(memories_filename, memories)
         tags_filename = prefix + constants.labels_prefix + constants.memory_suffix
-        tags_filename = constants.data_filename(tags_filename, i)
+        tags_filename = constants.data_filename(tags_filename, fold)
         np.save(tags_filename, tags)
 
     main_avrge_entropies = get_means(all_entropies)

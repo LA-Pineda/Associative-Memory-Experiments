@@ -128,8 +128,8 @@ def store_images(original, produced, directory, prefix, stage, idx, label):
     png.from_array(pixels, 'L;8').save(produced_filename)
  
 
-def store_memories(produced, directory, prefix, msize, labels):
-    (stage, idx, label) = labels
+def store_memories(labels, produced, directory, prefix, stage, msize):
+    (idx, label) = labels
     produced_filename = constants.produced_memory_filename(directory,
         prefix, msize, stage, idx, label)
 
@@ -258,23 +258,29 @@ def obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
 
 def remember(prefix):
 
-    stats = []
-    for idx, _ in enumerate(constants.memory_fills):
+    for i in range(len(constants.training_stages)):
         memories_filename = prefix + constants.memories_prefix
-        memories_filename = constants.data_filename(memories_filename, idx)
+        memories_filename = constants.data_filename(memories_filename, i)
         labels_filename = prefix + constants.labels_prefix + constants.memory_suffix
-        labels_filename = constants.data_filename(labels_filename, idx)
-        decoder_filename = prefix + constants.decoder_prefix
-        decoder_filename = constants.model_filename(decoder_filename, idx)
-
+        labels_filename = constants.data_filename(labels_filename, i)
         memories = np.load(memories_filename)
         labels = np.load(labels_filename)
+        decoder_filename = prefix + constants.decoder_prefix
+        decoder_filename = constants.model_filename(decoder_filename, i)
         decoder = tf.keras.models.load_model(decoder_filename)
-        produced_images = decoder.predict(memories)        
 
-        n = len(memories)
+        total = len(memories)
+        steps = len(constants.memory_sizes)
+        step_size = int(total/steps)
+        for j in range(steps):
+            print('Decoding memory size ' + str(j) + ' and stage ' + str(i))
+            start = j*step_size
+            end = start + step_size
+            testing_data = memories[start:end]
+            testing_labels = labels[start:end]
+            produced_images = decoder.predict(testing_data)        
 
-        Parallel(n_jobs=constants.n_jobs, verbose=50)( \
-            delayed(store_memories)(produced, constants.memories_directory, prefix, idx, label) \
-                for (produced, label) in zip(produced_images, labels))
+            Parallel(n_jobs=constants.n_jobs, verbose=50)( \
+                delayed(store_memories)(label, produced, constants.memories_directory, prefix, i, j) \
+                    for (produced, label) in zip(produced_images, testing_labels))
 

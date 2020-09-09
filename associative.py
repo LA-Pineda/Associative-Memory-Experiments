@@ -88,7 +88,7 @@ class AssociativeMemory(object):
     def undefined(self):
         return np.nan
 
-    
+
     def is_undefined(self, value):
         return np.all(np.isnan(value))
 
@@ -104,23 +104,36 @@ class AssociativeMemory(object):
 
     # Choose a value for feature i.
     def choose(self, i, v):
-        candidates = []
-        
-        for j in range(self.m):
-            if self.relation[j, i]:
-                candidates.append(j)
-        
-        n = len(candidates)
-        if n != 0:
-            mode = 0
-            for j in range(n):
-                if v == candidates[j]:
-                    mode = j
-                    break
-            k = round(random.triangular(0, n-1, mode))
-            return candidates[k]
+        mode = v
+        min = v
+        max = v
+
+        for j in range(v, 0, -1):
+            if self.relation[j,i]:
+                min = j
+            else:
+                break
+
+        for j in range(v, self.m):
+            if self.relation[j,i]:
+                max = j
+            else:
+                break
+
+        if min == max:
+            return v
         else:
-            return self.undefined
+            p = np.array((max - min + 1, ))
+            for i in range(p.size):
+                p[i] = abs(i - v)
+
+            min -= 0.4
+            max += 0.4
+            while True:
+                k = round(random.triangular(min, max, mode))
+                p[k] -= 1
+                if p[k] == 0:
+                    return k
         
 
     def abstract(self, r_io) -> None:
@@ -137,10 +150,10 @@ class AssociativeMemory(object):
 
         for i in range(self.n):
             v[i] = self.choose(i, vector[i])
-        
+
         return v
 
-    
+
     def validate(self, vector):
         if vector.size != self.n:
             raise ValueError('Invalid size of the input data. Expected', self.n, 'and given', vector.size)
@@ -164,7 +177,7 @@ class AssociativeMemory(object):
         self.validate(vector)
         r_io = self.vector_to_relation(vector)
         r_io = self.containment(r_io)
-        
+
         return np.all(r_io == True)
 
 
