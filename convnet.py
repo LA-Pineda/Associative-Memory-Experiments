@@ -258,7 +258,7 @@ def obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
 
 def remember(prefix):
 
-    for i in range(len(constants.training_stages)):
+    for i in range(constants.training_stages):
         memories_filename = prefix + constants.memories_prefix
         memories_filename = constants.data_filename(memories_filename, i)
         labels_filename = prefix + constants.labels_prefix + constants.memory_suffix

@@ -2,7 +2,7 @@
 
 import numpy as np
 import random
-
+import time
 
 class AssociativeMemoryError(Exception):
     pass
@@ -104,11 +104,10 @@ class AssociativeMemory(object):
 
     # Choose a value for feature i.
     def choose(self, i, v):
-        mode = v
         min = v
         max = v
 
-        for j in range(v, 0, -1):
+        for j in range(v, -1, -1):
             if self.relation[j,i]:
                 min = j
             else:
@@ -123,17 +122,8 @@ class AssociativeMemory(object):
         if min == max:
             return v
         else:
-            p = np.array((max - min + 1, ))
-            for i in range(p.size):
-                p[i] = abs(i - v)
-
-            min -= 0.4
-            max += 0.4
-            while True:
-                k = round(random.triangular(min, max, mode))
-                p[k] -= 1
-                if p[k] == 0:
-                    return k
+            k = round(random.triangular(min, max, v))
+            return k
         
 
     def abstract(self, r_io) -> None:

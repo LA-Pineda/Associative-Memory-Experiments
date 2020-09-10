@@ -631,8 +631,8 @@ def test_recalling(domain, prefix, mem_size, experiment):
             for fold in range(constants.training_stages))
 
     for fold, stage_recalls, stage_entropies, stage_mprecision, stage_mrecall in list_results:
-        all_recalds[fold] = stage_recalls
-        for msize in stage_recalls:
+        all_recalls[fold] = stage_recalls
+        for msize in stage_entropies:
             all_entropies[msize] = all_entropies[msize] + [stage_entropies[msize]] \
                 if msize in all_entropies.keys() else [stage_entropies[msize]]
             all_mprecision[msize] = all_mprecision[msize] + [stage_mprecision[msize]] \
@@ -645,7 +645,7 @@ def test_recalling(domain, prefix, mem_size, experiment):
         tags = []
         memories = []
         for (idx, label, features) in list_tups:
-            tags.append((stage, idx, label))
+            tags.append((idx, label))
             memories.append(np.array(features))
         
         tags = np.array(tags)
