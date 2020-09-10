@@ -270,7 +270,7 @@ def remember(prefix):
         decoder = tf.keras.models.load_model(decoder_filename)
 
         total = len(memories)
-        steps = len(constants.memory_sizes)
+        steps = len(constants.memory_fills)
         step_size = int(total/steps)
         for j in range(steps):
             print('Decoding memory size ' + str(j) + ' and stage ' + str(i))

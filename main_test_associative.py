@@ -459,7 +459,7 @@ def test_memories(domain, prefix, experiment):
     print('Test complete')
 
 
-def get_recalls(ams, msize, domain, min, max, trf, trl, tef, tel, idx, last):
+def get_recalls(ams, msize, domain, min, max, trf, trl, tef, tel, idx):
 
     trf_rounded = np.round((trf - min) * (msize - 1) / (max - min)).astype(np.int16)
     tef_rounded = np.round((tef - min) * (msize - 1) / (max - min)).astype(np.int16)
@@ -484,6 +484,7 @@ def get_recalls(ams, msize, domain, min, max, trf, trl, tef, tel, idx, last):
         entropy[j] = ams[j].entropy
 
     all_recalls = []
+    total_recalls = 0
     # Recover memories
     for n, features, label in zip(range(len(tef_rounded)), tef_rounded, tel):
         memories = []
@@ -510,18 +511,19 @@ def get_recalls(ams, msize, domain, min, max, trf, trl, tef, tel, idx, last):
         if (len(memories) == 0):
             # Register empty case
             undefined = np.full(domain, ams[0].undefined)
-            all_recalls.append((n+last, label, undefined))
+            all_recalls.append((n, label, undefined))
         else:
             l = get_label(memories, entropy)
             features = recalls[l]*(max-min)*1.0/(msize-1) + min
-            all_recalls.append((n+last, label, features))
+            all_recalls.append((n, label, features))
+            total_recalls += 1
 
     for i in range(n_mems):
         positives = cms[i][TP] + cms[i][FP]
         measures[constants.precision_idx,i] = cms[i][TP] / positives if positives else 1.0
         measures[constants.recall_idx,i] = cms[i][TP] /(cms[i][TP] + cms[i][FN])    
 
-    return all_recalls, measures, entropy
+    return all_recalls, measures, entropy, total_recalls
     
 
 def get_means(d):
@@ -568,20 +570,20 @@ def test_recalling_fold(n_memories, mem_size, domain, prefix, experiment, fold):
     testing_labels_filename = prefix + constants.labels_prefix + suffix        
     testing_labels_filename = constants.data_filename(testing_labels_filename, fold)
 
-    features = np.load(training_features_filename)
-    labels = np.load(training_labels_filename)
+    training_features = np.load(training_features_filename)
+    training_labels = np.load(training_labels_filename)
     testing_features = np.load(testing_features_filename)
     testing_labels = np.load(testing_labels_filename)
 
-    training_max = features.max()
+    training_max = training_features.max()
     testing_max = testing_features.max()
-    training_min = features.min()
+    training_min = training_features.min()
     testing_min = testing_features.min()
 
     maximum = training_max if training_max > testing_max else testing_max
     minimum = training_min if training_min < testing_min else testing_min
 
-    total = len(features)
+    total = len(training_features)
     percents = np.array(constants.memory_fills)
     steps = np.round(total*percents/100.0).astype(int)
 
@@ -589,16 +591,17 @@ def test_recalling_fold(n_memories, mem_size, domain, prefix, experiment, fold):
     stage_entropies = {}
     stage_mprecision = {}
     stage_mrecall = {}
+    total_recalls = []
 
     i = 0
     k = 0
     for j in range(len(steps)):
         k += steps[j]
-        training_features = features[i:k]
-        training_labels = labels[i:k]
+        features = training_features[i:k]
+        labels = training_labels[i:k]
 
-        recalls, measures, entropies = get_recalls(ams, mem_size, domain, minimum, maximum, \
-            training_features, training_labels, testing_features, testing_labels, fold, i)
+        recalls, measures, entropies, total_recall = get_recalls(ams, mem_size, domain, minimum, maximum, \
+            features, labels, testing_features, testing_labels, fold)
 
         # A list of tuples (position, label, features)
         stage_recalls += recalls
@@ -612,8 +615,13 @@ def test_recalling_fold(n_memories, mem_size, domain, prefix, experiment, fold):
         # An array with recall per memory
         stage_mrecall[j] = measures[constants.recall_idx,:]
 
+        # Total number of recalls per step
+        total_recalls.append(total_recall)
+
         i = k
-    return  fold, stage_recalls, stage_entropies, stage_mprecision, stage_mrecall
+
+    print(total_recalls)
+    return  fold, stage_recalls, stage_entropies, stage_mprecision, stage_mrecall, np.array(total_recalls)
 
 
 def test_recalling(domain, prefix, mem_size, experiment):
@@ -623,14 +631,14 @@ def test_recalling(domain, prefix, mem_size, experiment):
     all_entropies = {}
     all_mprecision = {}
     all_mrecall = {}
+    total_recalls = np.zeros((constants.training_stages, len(constants.memory_fills)))
 
     xlabels = constants.memory_fills
-
     list_results = Parallel(n_jobs=constants.n_jobs, verbose=50)(
         delayed(test_recalling_fold)(n_memories, mem_size, domain, prefix, experiment, fold) \
             for fold in range(constants.training_stages))
 
-    for fold, stage_recalls, stage_entropies, stage_mprecision, stage_mrecall in list_results:
+    for fold, stage_recalls, stage_entropies, stage_mprecision, stage_mrecall, total_recall in list_results:
         all_recalls[fold] = stage_recalls
         for msize in stage_entropies:
             all_entropies[msize] = all_entropies[msize] + [stage_entropies[msize]] \
@@ -639,6 +647,7 @@ def test_recalling(domain, prefix, mem_size, experiment):
                 if msize in all_mprecision.keys() else [stage_mprecision[msize]]
             all_mrecall[msize] = all_mrecall[msize] + [stage_mrecall[msize]] \
                 if msize in all_mrecall.keys() else [stage_mrecall[msize]]
+            total_recalls[fold] = total_recall
 
     for fold in all_recalls:
         list_tups = all_recalls[fold]
@@ -676,6 +685,9 @@ def test_recalling(domain, prefix, mem_size, experiment):
         main_stdev_mrecall, delimiter=',')
     np.savetxt(constants.csv_filename('main_stdev_entropy',experiment), \
         main_stdev_entropies, delimiter=',')
+    np.savetxt(constants.csv_filename('main_total_recalls',experiment), \
+        total_recalls, delimiter=',')
+
 
     plot_pre_graph(main_avrge_mprecision*100, main_avrge_mrecall*100, main_avrge_entropies,\
         main_stdev_mprecision*100, main_stdev_mrecall*100, main_stdev_entropies, 'recall-', \
