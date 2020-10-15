@@ -229,12 +229,18 @@ def obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
 def remember(prefix):
 
     for i in range(constants.training_stages):
-        memories_filename = prefix + constants.memories_prefix
+        testing_data_filename = prefix + constants.data_name + constants.testing_suffix
+        testing_data_filename = constants.data_filename(testing_data_filename, i)
+        testing_labels_filename = prefix + constants.labels_name + constants.testing_suffix
+        testing_labels_filename = constants.data_filename(testing_labels_filename, i)
+        memories_filename = prefix + constants.memories_name
         memories_filename = constants.data_filename(memories_filename, i)
-        labels_filename = prefix + constants.labels_prefix + constants.memory_suffix
+        labels_filename = prefix + constants.labels_name + constants.memory_suffix
         labels_filename = constants.data_filename(labels_filename, i)
-        model_filename = constants.model_filename(prefix + constants.model_prefix, i)
+        model_filename = constants.model_filename(prefix + constants.model_name, i)
     
+        testing_data = np.load(testing_data_filename)
+        testing_labels = np.load(testing_labels_filename)
         memories = np.load(memories_filename)
         labels = np.load(labels_filename)
         model = tf.keras.models.load_model(model_filename)
@@ -251,6 +257,15 @@ def remember(prefix):
 
         for dlayer, alayer in zip(decoder.layers[1:], autoencoder.layers[11:]):
             dlayer.set_weights(alayer.get_weights())
+
+        produced_images = decoder.predict(testing_data)  
+        n = len(testing_labels)
+
+        Parallel(n_jobs=constants.n_jobs, verbose=50)( \
+            delayed(store_images)(original, produced, constants.testing_directory, prefix, i, j, label) \
+                for (j, original, produced, label) in \
+                    zip(range(n), testing_data, produced_images, testing_labels))
+
 
         total = len(memories)
         steps = len(constants.memory_fills)

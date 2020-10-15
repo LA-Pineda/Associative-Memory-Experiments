@@ -91,12 +91,12 @@ def produced_memory_filename(dir, prefix, msize, stage, idx, label):
 
 
 # Categories prefixes.
-model_prefix = 'model'
-stats_model_prefix = 'model_stats'
-data_prefix = 'data'
-features_prefix = 'features'
-labels_prefix = 'labels'
-memories_prefix = 'memories'
+model_name = 'model'
+stats_model_name = 'model_stats'
+data_name = 'data'
+features_name = 'features'
+labels_name = 'labels'
+memories_name = 'memories'
 
 full_prefix = 'full-'
 partial_prefix = 'partial-'

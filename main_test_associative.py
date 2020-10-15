@@ -129,7 +129,7 @@ def plot_features_graph(prefix, domain, means, stdevs):
         plt.legend(loc='right')
         plt.grid(True)
 
-        filename = prefix + constants.features_prefix + '-' + str(i)
+        filename = prefix + constants.features_name + '-' + str(i)
         plt.savefig(constants.picture_filename(filename), dpi=500)
 
 
@@ -278,15 +278,15 @@ def test_memories(domain, prefix, experiment):
     for i in range(constants.training_stages):
         gc.collect()
 
-        training_features_filename = prefix + constants.features_prefix + suffix        
+        training_features_filename = prefix + constants.features_name + suffix        
         training_features_filename = constants.data_filename(training_features_filename, i)
-        training_labels_filename = prefix + constants.labels_prefix + suffix        
+        training_labels_filename = prefix + constants.labels_name + suffix        
         training_labels_filename = constants.data_filename(training_labels_filename, i)
 
         suffix = constants.testing_suffix
-        testing_features_filename = prefix + constants.features_prefix + suffix        
+        testing_features_filename = prefix + constants.features_name + suffix        
         testing_features_filename = constants.data_filename(testing_features_filename, i)
-        testing_labels_filename = prefix + constants.labels_prefix + suffix        
+        testing_labels_filename = prefix + constants.labels_name + suffix        
         testing_labels_filename = constants.data_filename(testing_labels_filename, i)
 
         training_features = np.load(training_features_filename)
@@ -556,15 +556,15 @@ def test_recalling_fold(n_memories, mem_size, domain, prefix, experiment, fold):
     elif prefix == constants.full_prefix:
         suffix = constants.training_suffix
 
-    training_features_filename = prefix + constants.features_prefix + suffix        
+    training_features_filename = prefix + constants.features_name + suffix        
     training_features_filename = constants.data_filename(training_features_filename, fold)
-    training_labels_filename = prefix + constants.labels_prefix + suffix        
+    training_labels_filename = prefix + constants.labels_name + suffix        
     training_labels_filename = constants.data_filename(training_labels_filename, fold)
 
     suffix = constants.testing_suffix
-    testing_features_filename = prefix + constants.features_prefix + suffix        
+    testing_features_filename = prefix + constants.features_name + suffix        
     testing_features_filename = constants.data_filename(testing_features_filename, fold)
-    testing_labels_filename = prefix + constants.labels_prefix + suffix        
+    testing_labels_filename = prefix + constants.labels_name + suffix        
     testing_labels_filename = constants.data_filename(testing_labels_filename, fold)
 
     training_features = np.load(training_features_filename)
@@ -656,9 +656,9 @@ def test_recalling(domain, prefix, mem_size, experiment):
         
         tags = np.array(tags)
         memories = np.array(memories)
-        memories_filename = constants.data_filename(prefix+constants.memories_prefix, fold)
+        memories_filename = constants.data_filename(prefix+constants.memories_name, fold)
         np.save(memories_filename, memories)
-        tags_filename = prefix + constants.labels_prefix + constants.memory_suffix
+        tags_filename = prefix + constants.labels_name + constants.memory_suffix
         tags_filename = constants.data_filename(tags_filename, fold)
         np.save(tags_filename, tags)
 
@@ -707,11 +707,11 @@ def get_all_data(prefix, domain):
     return data
 
 def characterize_features(prefix, domain):
-    features_prefix = prefix + constants.features_prefix
+    features_prefix = prefix + constants.features_name
     ff_filename = features_prefix + constants.filling_suffix
     tf_filename = features_prefix + constants.testing_suffix
 
-    labels_prefix = prefix + constants.labels_prefix
+    labels_prefix = prefix + constants.labels_name
     fl_filename = labels_prefix + constants.filling_suffix
     tl_filename = labels_prefix + constants.testing_suffix
 
@@ -769,8 +769,8 @@ def main(action):
         if action == TRAIN_NN_FULL:
             training_percentage += constants.am_filling_percent
             prefix = constants.full_prefix
-        model_prefix = prefix + constants.model_prefix
-        stats_prefix = prefix + constants.stats_model_prefix
+        model_prefix = prefix + constants.model_name
+        stats_prefix = prefix + constants.stats_model_name
 
         history = convnet.train_networks(training_percentage, model_prefix)
         # np.savetxt(constants.csv_filename(stats_prefix), loss_acc, delimiter=',')
@@ -783,10 +783,10 @@ def main(action):
             training_percentage += constants.am_filling_percent
             am_filling_percentage = 0.0
             prefix = constants.full_prefix
-        model_prefix = prefix + constants.model_prefix
-        features_prefix = prefix + constants.features_prefix
-        labels_prefix = prefix + constants.labels_prefix
-        data_prefix = prefix + constants.data_prefix
+        model_prefix = prefix + constants.model_name
+        features_prefix = prefix + constants.features_name
+        labels_prefix = prefix + constants.labels_name
+        data_prefix = prefix + constants.data_name
 
         convnet.obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
             training_percentage, am_filling_percentage)
