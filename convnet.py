@@ -78,7 +78,7 @@ def get_classifier(encoded):
 
 def train_networks(training_percentage, filename):
 
-    EPOCHS = constants.encoders_epochs
+    EPOCHS = constants.model_epochs
     stages = constants.training_stages
 
     (data, labels) = get_data(one_hot=True)
