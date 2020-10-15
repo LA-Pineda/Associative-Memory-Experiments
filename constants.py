@@ -91,10 +91,8 @@ def produced_memory_filename(dir, prefix, msize, stage, idx, label):
 
 
 # Categories prefixes.
-encoder_prefix = 'encoder'
-decoder_prefix = 'decoder'
-stats_encoder_prefix = 'encoder_stats'
-stats_decoder_prefix = 'decoder_stats'
+model_prefix = 'model'
+stats_model_prefix = 'model_stats'
 data_prefix = 'data'
 features_prefix = 'features'
 labels_prefix = 'labels'
@@ -113,8 +111,7 @@ testing_directory = 'test'
 memories_directory = 'memories'
 
 training_stages = 10        # 0.10 of data.
-encoders_epochs = 10
-decoders_epochs = 10
+model_epochs = 10
 
 nn_training_percent = 0.57  # 0.10 + 0.57 = 0.67
 am_filling_percent = 0.33   # 0.67 + 0.33 = 1.0

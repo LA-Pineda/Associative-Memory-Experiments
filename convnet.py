@@ -1,12 +1,16 @@
 import numpy as np
-import tensorflow as tf
+import tensorflow as tf 
+from tensorflow.keras import Model
+from tensorflow.keras.layers import Input, Conv2D, MaxPooling2D, Dropout, Flatten, Dense, \
+    LayerNormalization, Reshape, Conv2DTranspose
 from tensorflow.keras.utils import to_categorical
 from joblib import Parallel, delayed
-import matplotlib.pyplot as plt
 import png
 
 import constants
 
+img_rows = 28
+img_columns = 28
 
 def get_data(one_hot = False):
 
@@ -17,7 +21,7 @@ def get_data(one_hot = False):
     all_data = np.concatenate((train_images, test_images), axis=0)
     all_labels = np.concatenate((train_labels, test_labels), axis= 0)
 
-    all_data = all_data.reshape((70000, 28, 28, 1))
+    all_data = all_data.reshape((70000, img_columns, img_rows, 1))
     all_data = all_data.astype('float32') / 255
 
     if one_hot:
@@ -28,46 +32,51 @@ def get_data(one_hot = False):
     return (all_data, all_labels)
 
 
-def get_encoder():
+def get_encoder(input_img):
 
-    # Creates a two parts neural network: a convolutional neural network (CNN) with
-    # three main layers, and a full connected neural network.
-    model = tf.keras.models.Sequential()
-    model.add(tf.keras.layers.Conv2D(32,kernel_size=3, activation='relu', padding='same', input_shape=(28, 28, 1)))
-    model.add(tf.keras.layers.MaxPooling2D((2, 2)))
-    # model.add(tf.keras.layers.Dropout(0.4))
-    model.add(tf.keras.layers.Conv2D(32,kernel_size=3, activation='relu'))
-    model.add(tf.keras.layers.MaxPooling2D((2, 2)))
-    model.add(tf.keras.layers.Dropout(0.4))
-    model.add(tf.keras.layers.Conv2D(64, kernel_size=5, activation='relu'))
-    model.add(tf.keras.layers.MaxPooling2D((2, 2)))
-    model.add(tf.keras.layers.Dropout(0.4))
-    model.add(tf.keras.layers.LayerNormalization())
-    model.add(tf.keras.layers.Flatten())
-    model.add(tf.keras.layers.Dense(constants.domain*2, activation='relu'))
-    model.add(tf.keras.layers.Dropout(0.4)),
-    model.add(tf.keras.layers.Dense(10, activation='softmax'))
-    
-    model.compile(loss='categorical_crossentropy', optimizer='RMSprop', metrics=['accuracy'])
-    return model
+    # Convolutional Encoder
+    conv_1 = Conv2D(32,kernel_size=3, activation='relu', padding='same',
+        input_shape=(img_columns, img_rows, 1))(input_img)
+    pool_1 = MaxPooling2D((2, 2))(conv_1)
+    conv_2 = Conv2D(32,kernel_size=3, activation='relu')(pool_1)
+    pool_2 = MaxPooling2D((2, 2))(conv_2)
+    drop_1 = Dropout(0.4)(pool_2)
+    conv_3 = Conv2D(64, kernel_size=5, activation='relu')(drop_1)
+    pool_3 = MaxPooling2D((2, 2))(conv_3)
+    drop_2 = Dropout(0.4)(pool_3)
+    norm = LayerNormalization()(drop_2)
+
+    # Produces an array of size equal to constants.domain.
+    code = Flatten()(norm)
+
+    return code
 
 
-def get_decoder():
-    model = tf.keras.models.Sequential()
-    input_img = tf.keras.layers.Input(shape=(constants.domain, ))
-    model.add(tf.keras.layers.Dense(units=7*7*32, activation='relu', input_shape=(64, )))
-    model.add(tf.keras.layers.Reshape((7, 7, 32)))
-    model.add(tf.keras.layers.Conv2DTranspose(64, kernel_size=3, strides=2, padding='same', activation='relu'))
-    model.add(tf.keras.layers.Dropout(0.4))
-    model.add(tf.keras.layers.Conv2DTranspose(32, kernel_size=3, strides=2, padding='same', activation='relu'))
-    model.add(tf.keras.layers.Dropout(0.4))
-    model.add(tf.keras.layers.Conv2D(1, kernel_size=3, strides=1, activation='sigmoid', padding='same'))
+def get_decoder(encoded):
+    dense = Dense(units=7*7*32, activation='relu', input_shape=(64, ))(encoded)
+    reshape = Reshape((7, 7, 32))(dense)
+    trans_1 = Conv2DTranspose(64, kernel_size=3, strides=2,
+        padding='same', activation='relu')(reshape)
+    drop_1 = Dropout(0.4)(trans_1)
+    trans_2 = Conv2DTranspose(32, kernel_size=3, strides=2,
+        padding='same', activation='relu')(drop_1)
+    drop_2 = Dropout(0.4)(trans_2)
+    output_img = Conv2D(1, kernel_size=3, strides=1,
+        activation='sigmoid', padding='same', name='autoencoder')(drop_2)
 
-    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
-    return model
+    # Produces an image of same size and channels as originals.
+    return output_img
 
 
-def train_encoders(training_percentage, filename):
+def get_classifier(encoded):
+    dense_1 = Dense(constants.domain*2, activation='relu')(encoded)
+    drop = Dropout(0.4)(dense_1)
+    classification = Dense(10, activation='softmax', name='classification')(drop)
+
+    return classification
+
+
+def train_networks(training_percentage, filename):
 
     EPOCHS = constants.encoders_epochs
     stages = constants.training_stages
@@ -88,6 +97,7 @@ def train_encoders(training_percentage, filename):
         if j > i:
             testing_data = data[i:j]
             testing_labels = labels[i:j]
+            
             training_data = np.concatenate((data[0:i], data[j:total]), axis=0)
             training_labels = np.concatenate((labels[0:i], labels[j:total]), axis=0)
         else:
@@ -96,21 +106,30 @@ def train_encoders(training_percentage, filename):
             training_data = data[j:i]
             training_labels = labels[j:i]
         
-        model = get_encoder()
-        print('Encoder:')
+        input_img = Input(shape=(img_columns, img_rows, 1))
+        encoded = get_encoder(input_img)
+        classified = get_classifier(encoded)
+        decoded = get_decoder(encoded)
+        model = Model(inputs=input_img, outputs=[classified, decoded])
+
+        model.compile(loss=['categorical_crossentropy', 'binary_crossentropy'],
+                    optimizer='adam',
+                    metrics='accuracy')
+
         model.summary()
 
-        model.fit(training_data, training_labels,
+        stats = model.fit(training_data, 
+                (training_labels, training_data),
                 batch_size=100,
                 epochs=EPOCHS,
+                validation_data= (testing_data,
+                    {'classification': testing_labels, 'autoencoder': testing_data}),
                 verbose=2)
 
-        test_loss, test_acc = model.evaluate(testing_data, testing_labels)
-        stats.append((test_loss, test_acc))
         model.save(constants.model_filename(filename, n))
         n += 1
     
-    return np.array(stats)
+    return stats.history
 
 
 def store_images(original, produced, directory, prefix, stage, idx, label):
@@ -138,55 +157,8 @@ def store_memories(labels, produced, directory, prefix, stage, msize):
     png.from_array(pixels, 'L;8').save(produced_filename)
  
 
-def train_decoders(prefix, filename, suffix):
-
-    EPOCHS = constants.decoders_epochs
-    stats = []
-
-    for i in range(constants.training_stages):
-        training_data_filename = prefix + constants.features_prefix + suffix
-        training_data_filename = constants.data_filename(training_data_filename, i)
-        training_labels_filename = prefix + constants.data_prefix + suffix
-        training_labels_filename = constants.data_filename(training_labels_filename, i)
-
-        testing_data_filename = prefix + constants.features_prefix + constants.testing_suffix
-        testing_data_filename = constants.data_filename(testing_data_filename, i)
-        testing_labels_filename = prefix + constants.data_prefix + constants.testing_suffix
-        testing_labels_filename = constants.data_filename(testing_labels_filename, i)
-
-        training_data = np.load(training_data_filename)
-        training_labels = np.load(training_labels_filename)
-        testing_data = np.load(testing_data_filename)
-        testing_labels = np.load(testing_labels_filename)
-        training_labels.round()
-        decoder = get_decoder()
-        decoder.fit(training_data, training_labels,
-            batch_size=100,
-            epochs=EPOCHS,
-            verbose=2)
-
-        test_loss, test_acc = decoder.evaluate(testing_data, testing_labels)
-        stats.append((test_loss, test_acc))
-
-        produced_images = decoder.predict(testing_data)        
-
-        real_labels_filename = prefix + constants.labels_prefix + constants.testing_suffix
-        real_labels_filename = constants.data_filename(real_labels_filename, i)
-        real_labels = np.load(real_labels_filename)
-        n = len(real_labels)
-
-        Parallel(n_jobs=constants.n_jobs, verbose=50)( \
-            delayed(store_images)(original, produced, constants.testing_directory, prefix, i, j, label) \
-                for (j, original, produced, label) in \
-                    zip(range(n), testing_labels, produced_images, real_labels))
-
-        decoder.save(constants.model_filename(filename,i))
-
-    return np.array(stats)
-
-
 def obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
-            training_percentage, am_filling_percentage, pops):
+            training_percentage, am_filling_percentage):
     (data, labels) = get_data()
 
     total = len(data)
@@ -194,9 +166,6 @@ def obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
 
     # Amount of data used for training the networks
     trdata = int(total*training_percentage)
-
-    # Amount of data to be used to fill the memories
-    fldata = int(total*am_filling_percentage)
 
     # Amount of data used for testing memories
     tedata = step
@@ -225,9 +194,10 @@ def obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
         # Recreate the exact same model, including its weights and the optimizer
         model = tf.keras.models.load_model(constants.model_filename(model_prefix, n))
 
-        # Drop the last layers of the full connected neural network part.
-        for i in range(pops):
-            model.pop()
+        # Drop the autoencoder and the last layers of the full connected neural network part.
+        classifier = Model(model.input, model.output[0])
+        model = Model(classifier.input, classifier.layers[-4].output)
+        model.summary()
         
         training_features = model.predict(training_data)
         if len(filling_data) > 0:
@@ -263,11 +233,24 @@ def remember(prefix):
         memories_filename = constants.data_filename(memories_filename, i)
         labels_filename = prefix + constants.labels_prefix + constants.memory_suffix
         labels_filename = constants.data_filename(labels_filename, i)
+        model_filename = constants.model_filename(prefix + constants.model_prefix, i)
+    
         memories = np.load(memories_filename)
         labels = np.load(labels_filename)
-        decoder_filename = prefix + constants.decoder_prefix
-        decoder_filename = constants.model_filename(decoder_filename, i)
-        decoder = tf.keras.models.load_model(decoder_filename)
+        model = tf.keras.models.load_model(model_filename)
+
+        # Drop the classifier.
+        autoencoder = Model(model.input, model.output[1])
+        autoencoder.summary()
+
+        # Drop the encoder
+        input_mem = Input(shape=(constants.domain, ))
+        decoded = get_decoder(input_mem)
+        decoder = Model(inputs=input_mem, outputs=decoded)
+        decoder.summary()
+
+        for dlayer, alayer in zip(decoder.layers[1:], autoencoder.layers[11:]):
+            dlayer.set_weights(alayer.get_weights())
 
         total = len(memories)
         steps = len(constants.memory_fills)

@@ -4,14 +4,13 @@ import argparse
 
 import numpy as np
 from joblib import Parallel, delayed
-from matplotlib import cm
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import random
 
 import constants
 import convnet
-from associative import AssociativeMemory, AssociativeMemoryError
+from associative import AssociativeMemory
 
 
 def print_error(*s):
@@ -83,13 +82,13 @@ def plot_behs_graph(no_response, no_correct, no_chosen, correct, action=None):
     xlocs = np.arange(0, 100, main_step)
     width = 5       # the width of the bars: can also be len(x) sequence
 
-    p1 = plt.bar(xlocs, correct, width, label='Correct response chosen')
+    plt.bar(xlocs, correct, width, label='Correct response chosen')
     cumm = np.array(correct)
-    p2 = plt.bar(xlocs, no_chosen,  width, bottom=cumm, label='Correct response not chosen')
+    plt.bar(xlocs, no_chosen,  width, bottom=cumm, label='Correct response not chosen')
     cumm += np.array(no_chosen)
-    p3 = plt.bar(xlocs, no_correct, width, bottom=cumm, label='No correct response')
+    plt.bar(xlocs, no_correct, width, bottom=cumm, label='No correct response')
     cumm += np.array(no_correct)
-    p4 = plt.bar(xlocs, no_response, width, bottom=cumm, label='No responses')
+    plt.bar(xlocs, no_response, width, bottom=cumm, label='No responses')
 
     plt.xlim(-5, 95)
     plt.ylim(0, 100)
@@ -114,7 +113,6 @@ def plot_features_graph(prefix, domain, means, stdevs):
 
     main_step = 100.0 / domain
     xrange = np.arange(0, 100, main_step)
-    xticks = np.arange(0, 100, main_step)
     fmts = ['r-h', 'b-*', 'g-s', 'y-x', 'm-d', 'c-h', 'r-*', 'b--s', 'g--x', 'y--d']
 
     for i in constants.all_labels:
@@ -200,7 +198,6 @@ def get_ams_results(midx, msize, domain, lpm, trf, tef, trl, tel):
 
     # Recognition
     response_size = 0
-    n = len(tef_rounded)
 
     for features, label in zip(tef_rounded, tel):
         correct = int(label/lpm)
@@ -746,12 +743,10 @@ def characterize_features(prefix, domain):
 ##############################################################################
 # Main section
 
-CHARACTERIZE_FULL = -7
-CHARACTERIZE_PARTIAL = -6
-TRAIN_DECODER_FULL = -5
-TRAIN_DECODER_PARTIAL = -4
-TRAIN_ENCODER_FULL = -3
-TRAIN_ENCODER_PARTIAL = -2
+CHARACTERIZE_FULL = -5
+CHARACTERIZE_PARTIAL = -4
+TRAIN_NN_FULL = -3
+TRAIN_NN_PARTIAL = -2
 GET_FEATURES_FULL = -1
 GET_FEATURES_PARTIAL = 0
 FIRST_EXP_FULL = 10
@@ -767,28 +762,18 @@ MIN_EXPERIMENT = 1
 MAX_EXPERIMENT = 4
 
 def main(action):
-    if (action == TRAIN_ENCODER_FULL) or (action == TRAIN_ENCODER_PARTIAL):
+    if (action == TRAIN_NN_FULL) or (action == TRAIN_NN_PARTIAL):
         # Trains a neural network with those sections of data
         training_percentage = constants.nn_training_percent
         prefix = constants.partial_prefix
-        if action == TRAIN_ENCODER_FULL:
+        if action == TRAIN_NN_FULL:
             training_percentage += constants.am_filling_percent
             prefix = constants.full_prefix
-        model_prefix = prefix + constants.encoder_prefix
-        stats_prefix = prefix + constants.stats_encoder_prefix
+        model_prefix = prefix + constants.model_prefix
+        stats_prefix = prefix + constants.stats_model_prefix
 
-        loss_acc = convnet.train_encoders(training_percentage, model_prefix)
-        np.savetxt(constants.csv_filename(stats_prefix), loss_acc, delimiter=',')
-    elif (action == TRAIN_DECODER_FULL) or (action == TRAIN_DECODER_PARTIAL):
-        prefix = constants.partial_prefix
-        suffix = constants.training_suffix
-        if action == TRAIN_DECODER_FULL:
-            prefix = constants.full_prefix
-        model_prefix = prefix + constants.decoder_prefix
-        stats_prefix = prefix + constants.stats_decoder_prefix
-        
-        loss_acc = convnet.train_decoders(prefix, model_prefix, suffix)
-        np.savetxt(constants.csv_filename(stats_prefix), loss_acc, delimiter=',')
+        history = convnet.train_networks(training_percentage, model_prefix)
+        # np.savetxt(constants.csv_filename(stats_prefix), loss_acc, delimiter=',')
     elif (action == GET_FEATURES_FULL) or (action == GET_FEATURES_PARTIAL):
         # Generates features for the data sections using the previously generate neural network
         training_percentage = constants.nn_training_percent
@@ -798,13 +783,13 @@ def main(action):
             training_percentage += constants.am_filling_percent
             am_filling_percentage = 0.0
             prefix = constants.full_prefix
-        model_prefix = prefix + constants.encoder_prefix
+        model_prefix = prefix + constants.model_prefix
         features_prefix = prefix + constants.features_prefix
         labels_prefix = prefix + constants.labels_prefix
         data_prefix = prefix + constants.data_prefix
 
         convnet.obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
-            training_percentage, am_filling_percentage, 3)
+            training_percentage, am_filling_percentage)
     elif action == CHARACTERIZE_PARTIAL:
         # The domain size, equal to the size of the output layer of the network.
         characterize_features(constants.partial_prefix, constants.domain)
@@ -830,9 +815,9 @@ if __name__== "__main__" :
 
     parser = argparse.ArgumentParser(description='Associative Memory Experimenter.')
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('-n', action='store_const', const=TRAIN_ENCODER_PARTIAL, dest='action',
+    group.add_argument('-n', action='store_const', const=TRAIN_NN_PARTIAL, dest='action',
                         help='train the neural networks, separating NN and AM training data (Separate Data NN).')
-    group.add_argument('-N', action='store_const', const=TRAIN_ENCODER_FULL, dest='action',
+    group.add_argument('-N', action='store_const', const=TRAIN_NN_FULL, dest='action',
                         help='train the neural networks with standard MNIST distribution (Full Data NN).')
     group.add_argument('-f', action='store_const', const=GET_FEATURES_PARTIAL, dest='action',
                         help='get data features using the separate data neural networks.')
@@ -842,10 +827,6 @@ if __name__== "__main__" :
                         help='characterize the features from partial data neural networks by class.')
     group.add_argument('-C', action='store_const', const=CHARACTERIZE_FULL, dest='action',
                         help='characterize the features from full data neural networks by class.')
-    group.add_argument('-d', action='store_const', const=TRAIN_DECODER_PARTIAL, dest='action',
-                        help='train decoder networks, separating NN and AM training data (Separate Data NN).')
-    group.add_argument('-D', action='store_const', const=TRAIN_DECODER_FULL, dest='action',
-                        help='train decoder networks with standard MNIST distribution (Full Data NN).')
     group.add_argument('-e', nargs='?', dest='m', type=int, 
                         help='run the experiment with that number, using separate data neural networks.')
     group.add_argument('-E', nargs='?', dest='n', type=int, 
