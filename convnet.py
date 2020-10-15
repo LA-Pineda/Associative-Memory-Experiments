@@ -231,6 +231,8 @@ def remember(prefix):
     for i in range(constants.training_stages):
         testing_data_filename = prefix + constants.data_name + constants.testing_suffix
         testing_data_filename = constants.data_filename(testing_data_filename, i)
+        testing_features_filename = prefix + constants.features_name + constants.testing_suffix
+        testing_features_filename = constants.data_filename(testing_features_filename, i)
         testing_labels_filename = prefix + constants.labels_name + constants.testing_suffix
         testing_labels_filename = constants.data_filename(testing_labels_filename, i)
         memories_filename = prefix + constants.memories_name
@@ -240,6 +242,7 @@ def remember(prefix):
         model_filename = constants.model_filename(prefix + constants.model_name, i)
     
         testing_data = np.load(testing_data_filename)
+        testing_features = np.load(testing_features_filename)
         testing_labels = np.load(testing_labels_filename)
         memories = np.load(memories_filename)
         labels = np.load(labels_filename)
@@ -258,7 +261,7 @@ def remember(prefix):
         for dlayer, alayer in zip(decoder.layers[1:], autoencoder.layers[11:]):
             dlayer.set_weights(alayer.get_weights())
 
-        produced_images = decoder.predict(testing_data)  
+        produced_images = decoder.predict(testing_features)  
         n = len(testing_labels)
 
         Parallel(n_jobs=constants.n_jobs, verbose=50)( \
