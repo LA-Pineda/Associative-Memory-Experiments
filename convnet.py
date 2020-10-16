@@ -141,18 +141,20 @@ def store_images(original, produced, directory, prefix, stage, idx, label):
     pixels = original.reshape(28,28) * 255
     pixels = pixels.round().astype(np.uint8)
     png.from_array(pixels, 'L;8').save(original_filename)
-
     pixels = produced.reshape(28,28) * 255
     pixels = pixels.round().astype(np.uint8)
     png.from_array(pixels, 'L;8').save(produced_filename)
  
 
-def store_memories(labels, produced, directory, prefix, stage, msize):
+def store_memories(labels, produced, features, directory, prefix, stage, msize):
     (idx, label) = labels
     produced_filename = constants.produced_memory_filename(directory,
         prefix, msize, stage, idx, label)
 
-    pixels = produced.reshape(28,28) * 255
+    if np.isnan(np.sum(features)):
+        pixels = np.full((28,28), 255)
+    else:
+        pixels = produced.reshape(28,28) * 255
     pixels = pixels.round().astype(np.uint8)
     png.from_array(pixels, 'L;8').save(produced_filename)
  
@@ -264,24 +266,24 @@ def remember(prefix):
         produced_images = decoder.predict(testing_features)  
         n = len(testing_labels)
 
-        Parallel(n_jobs=constants.n_jobs, verbose=50)( \
+        Parallel(n_jobs=constants.n_jobs, verbose=5)( \
             delayed(store_images)(original, produced, constants.testing_directory, prefix, i, j, label) \
                 for (j, original, produced, label) in \
                     zip(range(n), testing_data, produced_images, testing_labels))
 
-
         total = len(memories)
         steps = len(constants.memory_fills)
         step_size = int(total/steps)
+
         for j in range(steps):
             print('Decoding memory size ' + str(j) + ' and stage ' + str(i))
             start = j*step_size
             end = start + step_size
-            testing_data = memories[start:end]
-            testing_labels = labels[start:end]
-            produced_images = decoder.predict(testing_data)        
+            mem_data = memories[start:end]
+            mem_labels = labels[start:end]
+            produced_images = decoder.predict(mem_data)
 
-            Parallel(n_jobs=constants.n_jobs, verbose=50)( \
-                delayed(store_memories)(label, produced, constants.memories_directory, prefix, i, j) \
-                    for (produced, label) in zip(produced_images, testing_labels))
+            Parallel(n_jobs=constants.n_jobs, verbose=5)( \
+                delayed(store_memories)(label, produced, features, constants.memories_directory, prefix, i, j) \
+                    for (produced, features, label) in zip(produced_images, mem_data, mem_labels))
 
