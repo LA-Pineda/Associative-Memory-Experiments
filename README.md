@@ -1,37 +1,32 @@
-# Associative-Memory-Experiments
-This repository contains the data and procedures to replicate the expermients presented in the paper "A Distributed Extension of the Turing Machine" by Luis A. Pineda at IIMAS, UNAM, México
+# Associative Memories Experiments
+This repository contains the data and procedures to replicate the expermients presented in the paper “[An Entropic Associative Memory](https://arxiv.org/abs/2009.13058)” by Luis A. Pineda and Gibrán Fuentes (IIMAS, UNAM, Mexico), and Rafael Morales (SUV, UDG, Mexico).
 
-This program was written in Python 3 and was run on a personal computer with the following specifications:
-* CPU: Intel Core i7-6700
+This program was written in Python 3 and was run on a desktop computer with the following specifications:
+* CPU: Intel Core i7-6700 at 3.40 GHz
 * GPU: Nvidia GeForce GTX 1080
-* OS: Ubuntu 16.04.2 LTS
-* RAM: 16GB
+* OS: Ubuntu 16.04 Xenial
+* RAM: 64GB
 
 ### Requeriments
 The following libraries need to be installed beforehand:
 * joblib
 * matplotlib
 * numpy
-* theano
+* png
+* TensorFlow 2.3
+
+The experiments were run using the Anaconda 3 distribution.
 
 ### Data
-The data that was used for this test was obtained from http://yann.lecun.com/exdb/mnist/ 
-
-This data is downloaded by the script "download_mnist.sh".
-
-All files are provided with the exception of
-
-/mnist/train-images-idx3-ubyte.gz
-
-due to its size.
-
-However, this file is downloades directly by the script.
+The MNIST database of handwritten digits, available throught TensorFlow 2.3, was used for all the experiments.
 
 ### Use
 
-To use just run the following command in the source directory
+To see how to use the code, just run the following command in the source directory
 
-    python3 main_test_associative.py
+```shell
+python3 main_test_associative.py -h
+```
 
 
 
