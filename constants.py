@@ -1,3 +1,18 @@
+# Copyright [2020] Luis Alberto Pineda Cortés, Gibrán Fuentes Pineda,
+# Rafael Morales Gamboa.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
 
 # Directory where all results are stored.
@@ -9,7 +24,7 @@ def filename(s, idx = None, extension = ''):
     """
     # Create target directory & all intermediate directories if don't exists
     try:
-        os.makedirs(run_path)    
+        os.makedirs(run_path)
         print("Directory " , run_path ,  " created ")
     except FileExistsError:
         pass
@@ -49,7 +64,7 @@ def image_filename(dir, prefix, stage, idx, label, suffix = ''):
     image_path = run_path + '/images/' + dir + '/' + prefix + '/' + 'stage_' + str(stage) + '/'
 
     try:
-        os.makedirs(image_path)    
+        os.makedirs(image_path)
         print("Directory " , image_path ,  " created ")
     except FileExistsError:
         pass
@@ -66,7 +81,7 @@ def memory_filename(dir, prefix, msize, stage, idx, label):
     image_path += 'msize_' + str(msize) + '/'
 
     try:
-        os.makedirs(image_path)    
+        os.makedirs(image_path)
         print("Directory " , image_path ,  " created ")
     except FileExistsError:
         pass
@@ -125,7 +140,7 @@ n_labels = 10
 labels_per_memory = [0, 1, 2]
 
 all_labels = list(range(n_labels))
-  
+
 precision_idx = 0
 recall_idx = 1
 n_measures = 2
@@ -147,5 +162,3 @@ memory_sizes = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
 memory_fills = [1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 100.0]
 partial_ideal_memory_size = 32
 full_ideal_memory_size = 64
-
-

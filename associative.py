@@ -1,4 +1,19 @@
-# Created by Raul Peralta-Lozada
+# Copyright [2020] Luis Alberto Pineda Cortés, Gibrán Fuentes Pineda,
+# Rafael Morales Gamboa.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# File originally create by Raul Peralta-Lozada.
 
 import numpy as np
 import random
@@ -124,7 +139,7 @@ class AssociativeMemory(object):
         else:
             k = round(random.triangular(min, max, v))
             return k
-        
+
 
     def abstract(self, r_io) -> None:
         self.relation = self.relation | r_io

@@ -1,5 +1,20 @@
+# Copyright [2020] Luis Alberto Pineda Cortés, Gibrán Fuentes Pineda,
+# Rafael Morales Gamboa.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import numpy as np
-import tensorflow as tf 
+import tensorflow as tf
 from tensorflow.keras import Model
 from tensorflow.keras.layers import Input, Conv2D, MaxPooling2D, Dropout, Flatten, Dense, \
     LayerNormalization, Reshape, Conv2DTranspose
@@ -97,7 +112,7 @@ def train_networks(training_percentage, filename):
         if j > i:
             testing_data = data[i:j]
             testing_labels = labels[i:j]
-            
+
             training_data = np.concatenate((data[0:i], data[j:total]), axis=0)
             training_labels = np.concatenate((labels[0:i], labels[j:total]), axis=0)
         else:
@@ -105,7 +120,7 @@ def train_networks(training_percentage, filename):
             testing_labels = np.concatenate((labels[i:total], labels[0:j]), axis=0)
             training_data = data[j:i]
             training_labels = labels[j:i]
-        
+
         input_img = Input(shape=(img_columns, img_rows, 1))
         encoded = get_encoder(input_img)
         classified = get_classifier(encoded)
@@ -118,7 +133,7 @@ def train_networks(training_percentage, filename):
 
         model.summary()
 
-        stats = model.fit(training_data, 
+        stats = model.fit(training_data,
                 (training_labels, training_data),
                 batch_size=100,
                 epochs=EPOCHS,
@@ -128,7 +143,7 @@ def train_networks(training_percentage, filename):
 
         model.save(constants.model_filename(filename, n))
         n += 1
-    
+
     return stats.history
 
 
@@ -144,7 +159,7 @@ def store_images(original, produced, directory, prefix, stage, idx, label):
     pixels = produced.reshape(28,28) * 255
     pixels = pixels.round().astype(np.uint8)
     png.from_array(pixels, 'L;8').save(produced_filename)
- 
+
 
 def store_memories(labels, produced, features, directory, prefix, stage, msize):
     (idx, label) = labels
@@ -157,7 +172,7 @@ def store_memories(labels, produced, features, directory, prefix, stage, msize):
         pixels = produced.reshape(28,28) * 255
     pixels = pixels.round().astype(np.uint8)
     png.from_array(pixels, 'L;8').save(produced_filename)
- 
+
 
 def obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
             training_percentage, am_filling_percentage):
@@ -192,7 +207,7 @@ def obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
             training_labels = labels[j:j+trdata]
             filling_data = data[j+trdata:i]
             filling_labels = labels[j+trdata:i]
- 
+
         # Recreate the exact same model, including its weights and the optimizer
         model = tf.keras.models.load_model(constants.model_filename(model_prefix, n))
 
@@ -200,7 +215,7 @@ def obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
         classifier = Model(model.input, model.output[0])
         model = Model(classifier.input, classifier.layers[-4].output)
         model.summary()
-        
+
         training_features = model.predict(training_data)
         if len(filling_data) > 0:
             filling_features = model.predict(filling_data)
@@ -242,7 +257,7 @@ def remember(prefix):
         labels_filename = prefix + constants.labels_name + constants.memory_suffix
         labels_filename = constants.data_filename(labels_filename, i)
         model_filename = constants.model_filename(prefix + constants.model_name, i)
-    
+
         testing_data = np.load(testing_data_filename)
         testing_features = np.load(testing_features_filename)
         testing_labels = np.load(testing_labels_filename)
@@ -263,7 +278,7 @@ def remember(prefix):
         for dlayer, alayer in zip(decoder.layers[1:], autoencoder.layers[11:]):
             dlayer.set_weights(alayer.get_weights())
 
-        produced_images = decoder.predict(testing_features)  
+        produced_images = decoder.predict(testing_features)
         n = len(testing_labels)
 
         Parallel(n_jobs=constants.n_jobs, verbose=5)( \
@@ -286,4 +301,3 @@ def remember(prefix):
             Parallel(n_jobs=constants.n_jobs, verbose=5)( \
                 delayed(store_memories)(label, produced, features, constants.memories_directory, prefix, i, j) \
                     for (produced, features, label) in zip(produced_images, mem_data, mem_labels))
-
