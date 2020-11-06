@@ -1,0 +1,91 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR ORGANIZATION
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"POT-Creation-Date: 2020-11-06 17:29-0600\n"
+"PO-Revision-Date: 2020-11-06 17:35-0600\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: es\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: pygettext.py 1.5\n"
+"X-Generator: Poedit 2.3\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: main_test_associative.py:22 main_test_associative.py:64
+#: main_test_associative.py:98
+msgid "Range Quantization Levels"
+msgstr "Niveles de cuantificación"
+
+#: main_test_associative.py:23
+msgid "Percentage [%]"
+msgstr "Porcentaje [%]"
+
+#: main_test_associative.py:34
+msgid "Precision"
+msgstr "Precisión"
+
+#: main_test_associative.py:35
+msgid "Recall"
+msgstr "Recuperación"
+
+#: main_test_associative.py:50
+msgid "Entropy"
+msgstr "Entropía"
+
+#: main_test_associative.py:52
+msgid "graph_l4_MEAN-{0}-english"
+msgstr "graph_l4_MEAN-{0}-español"
+
+#: main_test_associative.py:59
+msgid "Average number of responses"
+msgstr "Número promedio de respuestas"
+
+#: main_test_associative.py:65
+msgid "Size"
+msgstr "Tamaño"
+
+#: main_test_associative.py:69
+msgid "graph_size_MEAN-{0}-english"
+msgstr "graph_size_MEAN-{0}-español"
+
+#: main_test_associative.py:86
+msgid "Correct response chosen"
+msgstr "Respuesta correcta seleccionada"
+
+#: main_test_associative.py:88
+msgid "Correct response not chosen"
+msgstr "Respuesta correcta no seleccionada"
+
+#: main_test_associative.py:90
+msgid "No correct response"
+msgstr "Sin respuesta correcta"
+
+#: main_test_associative.py:92
+msgid "No responses"
+msgstr "Sin respuestas"
+
+#: main_test_associative.py:99
+msgid "Labels"
+msgstr "Etiquetas"
+
+#: main_test_associative.py:103
+msgid "graph_behaviours_MEAN-{0}-english"
+msgstr "graph_behaviours_MEAN-{0}-español"
+
+#: main_test_associative.py:128
+msgid "Features"
+msgstr "Características"
+
+#: main_test_associative.py:129
+msgid "Values"
+msgstr "Valores"
+
+#: main_test_associative.py:133
+msgid "-english"
+msgstr "-español"

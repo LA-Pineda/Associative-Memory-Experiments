@@ -1,6 +1,7 @@
 import sys
 import gc
 import argparse
+import gettext
 
 import numpy as np
 from joblib import Parallel, delayed
@@ -18,8 +19,8 @@ def print_error(*s):
 
 
 def plot_pre_graph (pre_mean, rec_mean, ent_mean, pre_std, rec_std, ent_std, \
-    tag = '', action=None, xlabels = constants.memory_sizes, xtitle = 'Range Quantization Levels', \
-        ytitle = 'Percentage [%]'):
+    tag = '', action=None, xlabels = constants.memory_sizes, xtitle = _('Range Quantization Levels'), \
+        ytitle = _('Percentage [%]')):
 
     cmap = mpl.colors.LinearSegmentedColormap.from_list('mycolors',['cyan','purple'])
     Z = [[0,0],[0,0]]
@@ -30,8 +31,8 @@ def plot_pre_graph (pre_mean, rec_mean, ent_mean, pre_std, rec_std, ent_std, \
     plt.clf()
 
     main_step = 100.0/len(xlabels)
-    plt.errorbar(np.arange(0, 100, main_step), pre_mean, fmt='r-o', yerr=pre_std, label='Precision')
-    plt.errorbar(np.arange(0, 100, main_step), rec_mean, fmt='b-s', yerr=rec_std, label='Recall')
+    plt.errorbar(np.arange(0, 100, main_step), pre_mean, fmt='r-o', yerr=pre_std, label=_('Precision'))
+    plt.errorbar(np.arange(0, 100, main_step), rec_mean, fmt='b-s', yerr=rec_std, label=_('Recall'))
     plt.xlim(0, 90)
     plt.ylim(0, 102)
     plt.xticks(np.arange(0, 100, main_step), xlabels)
@@ -46,26 +47,26 @@ def plot_pre_graph (pre_mean, rec_mean, ent_mean, pre_std, rec_std, ent_std, \
     cbar = plt.colorbar(CS3, orientation='horizontal')
     cbar.set_ticks(np.arange(0, 100, main_step))
     cbar.ax.set_xticklabels(entropy_labels)
-    cbar.set_label('Entropy')
+    cbar.set_label(_('Entropy'))
 
-    plt.savefig(constants.picture_filename(tag + 'graph_l4_MEAN-{0}'.format(action)), dpi=500)
+    plt.savefig(constants.picture_filename(tag + _('graph_l4_MEAN-{0}-english').format(action)), dpi=500)
 
 
 def plot_size_graph (response_size, size_stdev, action=None):
     plt.clf()
 
     main_step = len(constants.memory_sizes)
-    plt.errorbar(np.arange(0, 100, main_step), response_size, fmt='g-D', yerr=size_stdev, label='Average number of responses')
+    plt.errorbar(np.arange(0, 100, main_step), response_size, fmt='g-D', yerr=size_stdev, label=_('Average number of responses'))
     plt.xlim(0, 90)
     plt.ylim(0, 10)
     plt.xticks(np.arange(0, 100, 10), constants.memory_sizes)
 
-    plt.xlabel('Range Quantization Levels')
-    plt.ylabel('Size')
+    plt.xlabel(_('Range Quantization Levels'))
+    plt.ylabel(_('Size'))
     plt.legend(loc=1)
     plt.grid(True)
 
-    plt.savefig(constants.picture_filename('graph_size_MEAN-{0}'.format(action)), dpi=500)
+    plt.savefig(constants.picture_filename(_('graph_size_MEAN-{0}-english').format(action)), dpi=500)
 
 
 def plot_behs_graph(no_response, no_correct, no_chosen, correct, action=None):
@@ -82,24 +83,24 @@ def plot_behs_graph(no_response, no_correct, no_chosen, correct, action=None):
     xlocs = np.arange(0, 100, main_step)
     width = 5       # the width of the bars: can also be len(x) sequence
 
-    plt.bar(xlocs, correct, width, label='Correct response chosen')
+    plt.bar(xlocs, correct, width, label=_('Correct response chosen'))
     cumm = np.array(correct)
-    plt.bar(xlocs, no_chosen,  width, bottom=cumm, label='Correct response not chosen')
+    plt.bar(xlocs, no_chosen,  width, bottom=cumm, label=_('Correct response not chosen'))
     cumm += np.array(no_chosen)
-    plt.bar(xlocs, no_correct, width, bottom=cumm, label='No correct response')
+    plt.bar(xlocs, no_correct, width, bottom=cumm, label=_('No correct response'))
     cumm += np.array(no_correct)
-    plt.bar(xlocs, no_response, width, bottom=cumm, label='No responses')
+    plt.bar(xlocs, no_response, width, bottom=cumm, label=_('No responses'))
 
     plt.xlim(-5, 95)
     plt.ylim(0, 100)
     plt.xticks(np.arange(0, 100, 10), constants.memory_sizes)
 
-    plt.xlabel('Range Quantization Levels')
-    plt.ylabel('Labels')
+    plt.xlabel(_('Range Quantization Levels'))
+    plt.ylabel(_('Labels'))
 
     plt.legend(loc=0)
     plt.grid(axis='y')
-    plt.savefig(constants.picture_filename('graph_behaviours_MEAN-{0}'.format(action)), dpi=500)
+    plt.savefig(constants.picture_filename(_('graph_behaviours_MEAN-{0}-english').format(action)), dpi=500)
 
 
 def plot_features_graph(prefix, domain, means, stdevs):
@@ -124,12 +125,12 @@ def plot_features_graph(prefix, domain, means, stdevs):
         plt.ylim(ymin, ymax)
         plt.xticks(xrange, labels='')
 
-        plt.xlabel('Features')
-        plt.ylabel('Values')
+        plt.xlabel(_('Features'))
+        plt.ylabel(_('Values'))
         plt.legend(loc='right')
         plt.grid(True)
 
-        filename = prefix + constants.features_name + '-' + str(i)
+        filename = prefix + constants.features_name + '-' + str(i) + _('-english')
         plt.savefig(constants.picture_filename(filename), dpi=500)
 
 
@@ -814,6 +815,8 @@ def main(action):
 if __name__== "__main__" :
 
     parser = argparse.ArgumentParser(description='Associative Memory Experimenter.')
+    parser.add_argument('-l', nargs='?', dest='lang', choices=['en', 'es'], default='en',
+                        help='choose between English (en) or Spanish (es) labels for graphs.')
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('-n', action='store_const', const=TRAIN_NN_PARTIAL, dest='action',
                         help='train the neural networks, separating NN and AM training data (Separate Data NN).')
@@ -834,6 +837,7 @@ if __name__== "__main__" :
 
     args = parser.parse_args()
     action = args.action
+    lang = args.lang
     m = args.m
     n = args.n
     
@@ -848,8 +852,10 @@ if __name__== "__main__" :
         else:
             main(m if n is None else int(n*10))
     else:
+        if lang == 'es':
+            es = gettext.translation('ame', localedir='locale', languages=['es'])
+            es.install()
         main(action)
 
     
     
-
