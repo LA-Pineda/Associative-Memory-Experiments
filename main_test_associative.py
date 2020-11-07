@@ -13,6 +13,8 @@ import constants
 import convnet
 from associative import AssociativeMemory
 
+# Translation
+gettext.install('ame', localedir=None, codeset=None, names=None)
 
 def print_error(*s):
     print('Error:', *s, file = sys.stderr)
@@ -763,6 +765,9 @@ MIN_EXPERIMENT = 1
 MAX_EXPERIMENT = 4
 
 def main(action):
+    if lang == 'es':
+        es.install()
+
     if (action == TRAIN_NN_FULL) or (action == TRAIN_NN_PARTIAL):
         # Trains a neural network with those sections of data
         training_percentage = constants.nn_training_percent
@@ -841,6 +846,10 @@ if __name__== "__main__" :
     m = args.m
     n = args.n
     
+    if lang == 'es':
+        es = gettext.translation('ame', localedir='locale', languages=['es'])
+        es.install()
+ 
     if action is None:
         e = m if n is None else n
         # An experiment was chosen
@@ -852,9 +861,6 @@ if __name__== "__main__" :
         else:
             main(m if n is None else int(n*10))
     else:
-        if lang == 'es':
-            es = gettext.translation('ame', localedir='locale', languages=['es'])
-            es.install()
         main(action)
 
     
