@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2020-11-06 17:29-0600\n"
+"POT-Creation-Date: 2020-11-08 14:47-0600\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -15,76 +15,65 @@ msgstr ""
 "Generated-By: pygettext.py 1.5\n"
 
 
-#: main_test_associative.py:22 main_test_associative.py:64
-#: main_test_associative.py:98
+#: main_test_associative.py:24 main_test_associative.py:66
+#: main_test_associative.py:100
 msgid "Range Quantization Levels"
 msgstr ""
 
-#: main_test_associative.py:23
+#: main_test_associative.py:25
 msgid "Percentage [%]"
 msgstr ""
 
-#: main_test_associative.py:34
+#: main_test_associative.py:36
 msgid "Precision"
 msgstr ""
 
-#: main_test_associative.py:35
+#: main_test_associative.py:37
 msgid "Recall"
 msgstr ""
 
-#: main_test_associative.py:50
+#: main_test_associative.py:52
 msgid "Entropy"
 msgstr ""
 
-#: main_test_associative.py:52
-msgid "graph_l4_MEAN-{0}-english"
+#: main_test_associative.py:54 main_test_associative.py:71
+#: main_test_associative.py:105 main_test_associative.py:135
+msgid "-english"
 msgstr ""
 
-#: main_test_associative.py:59
+#: main_test_associative.py:61
 msgid "Average number of responses"
 msgstr ""
 
-#: main_test_associative.py:65
+#: main_test_associative.py:67
 msgid "Size"
 msgstr ""
 
-#: main_test_associative.py:69
-msgid "graph_size_MEAN-{0}-english"
-msgstr ""
-
-#: main_test_associative.py:86
+#: main_test_associative.py:88
 msgid "Correct response chosen"
 msgstr ""
 
-#: main_test_associative.py:88
+#: main_test_associative.py:90
 msgid "Correct response not chosen"
 msgstr ""
 
-#: main_test_associative.py:90
+#: main_test_associative.py:92
 msgid "No correct response"
 msgstr ""
 
-#: main_test_associative.py:92
+#: main_test_associative.py:94
 msgid "No responses"
 msgstr ""
 
-#: main_test_associative.py:99
+#: main_test_associative.py:101
 msgid "Labels"
 msgstr ""
 
-#: main_test_associative.py:103
-msgid "graph_behaviours_MEAN-{0}-english"
-msgstr ""
-
-#: main_test_associative.py:128
+#: main_test_associative.py:130
 msgid "Features"
 msgstr ""
 
-#: main_test_associative.py:129
+#: main_test_associative.py:131
 msgid "Values"
-msgstr ""
-
-#: main_test_associative.py:133
-msgid "-english"
 msgstr ""
 

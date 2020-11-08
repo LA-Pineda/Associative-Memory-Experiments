@@ -51,7 +51,7 @@ def plot_pre_graph (pre_mean, rec_mean, ent_mean, pre_std, rec_std, ent_std, \
     cbar.ax.set_xticklabels(entropy_labels)
     cbar.set_label(_('Entropy'))
 
-    plt.savefig(constants.picture_filename(tag + _('graph_l4_MEAN-{0}-english').format(action)), dpi=500)
+    plt.savefig(constants.picture_filename(tag + 'graph_l4_MEAN-{0}'.format(action) + _('-english')), dpi=500)
 
 
 def plot_size_graph (response_size, size_stdev, action=None):
@@ -68,7 +68,7 @@ def plot_size_graph (response_size, size_stdev, action=None):
     plt.legend(loc=1)
     plt.grid(True)
 
-    plt.savefig(constants.picture_filename(_('graph_size_MEAN-{0}-english').format(action)), dpi=500)
+    plt.savefig(constants.picture_filename('graph_size_MEAN-{0}'.format(action) + _('-english')), dpi=500)
 
 
 def plot_behs_graph(no_response, no_correct, no_chosen, correct, action=None):
@@ -102,7 +102,7 @@ def plot_behs_graph(no_response, no_correct, no_chosen, correct, action=None):
 
     plt.legend(loc=0)
     plt.grid(axis='y')
-    plt.savefig(constants.picture_filename(_('graph_behaviours_MEAN-{0}-english').format(action)), dpi=500)
+    plt.savefig(constants.picture_filename('graph_behaviours_MEAN-{0}'.format(action) + -_('-english')), dpi=500)
 
 
 def plot_features_graph(prefix, domain, means, stdevs):
