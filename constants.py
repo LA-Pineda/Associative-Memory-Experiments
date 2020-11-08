@@ -50,7 +50,7 @@ def data_filename(s, idx = None):
 def picture_filename(s, idx = None):
     """ Returns a file name for csv(i) in run_path directory
     """
-    return filename(s, idx, '.png')
+    return filename(s, idx, '.svg')
 
 
 def model_filename(s, idx = None):

@@ -21,8 +21,8 @@ def print_error(*s):
 
 
 def plot_pre_graph (pre_mean, rec_mean, ent_mean, pre_std, rec_std, ent_std, \
-    tag = '', action=None, xlabels = constants.memory_sizes, xtitle = _('Range Quantization Levels'), \
-        ytitle = _('Percentage [%]')):
+    tag = '', action=None, xlabels = constants.memory_sizes, xtitle = None, \
+        ytitle = None):
 
     cmap = mpl.colors.LinearSegmentedColormap.from_list('mycolors',['cyan','purple'])
     Z = [[0,0],[0,0]]
@@ -38,6 +38,11 @@ def plot_pre_graph (pre_mean, rec_mean, ent_mean, pre_std, rec_std, ent_std, \
     plt.xlim(0, 90)
     plt.ylim(0, 102)
     plt.xticks(np.arange(0, 100, main_step), xlabels)
+
+    if xtitle is None:
+        xtitle = _('Range Quantization Levels')
+    if ytitlte is None: 
+        ytitle = _('Percentage')
 
     plt.xlabel(xtitle)
     plt.ylabel(ytitle)
@@ -102,7 +107,7 @@ def plot_behs_graph(no_response, no_correct, no_chosen, correct, action=None):
 
     plt.legend(loc=0)
     plt.grid(axis='y')
-    plt.savefig(constants.picture_filename('graph_behaviours_MEAN-{0}'.format(action) + -_('-english')), dpi=500)
+    plt.savefig(constants.picture_filename('graph_behaviours_MEAN-{0}'.format(action) + _('-english')), dpi=500)
 
 
 def plot_features_graph(prefix, domain, means, stdevs):
@@ -691,7 +696,7 @@ def test_recalling(domain, prefix, mem_size, experiment):
 
     plot_pre_graph(main_avrge_mprecision*100, main_avrge_mrecall*100, main_avrge_entropies,\
         main_stdev_mprecision*100, main_stdev_mrecall*100, main_stdev_entropies, 'recall-', \
-            xlabels = xlabels, xtitle = 'Percentage of memory corpus', action=experiment)
+            xlabels = xlabels, xtitle = _('Percentage of memory corpus'), action=experiment)
 
     print('Test complete')
 

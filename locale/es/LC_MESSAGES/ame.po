@@ -5,8 +5,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
-"POT-Creation-Date: 2020-11-08 14:47-0600\n"
-"PO-Revision-Date: 2020-11-08 14:48-0600\n"
+"POT-Creation-Date: 2020-11-08 15:25-0600\n"
+"PO-Revision-Date: 2020-11-08 15:27-0600\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: es\n"
@@ -23,8 +23,8 @@ msgid "Range Quantization Levels"
 msgstr "Niveles de cuantización"
 
 #: main_test_associative.py:25
-msgid "Percentage [%]"
-msgstr "Porcentaje [%]"
+msgid "Percentage"
+msgstr "Porcentaje"
 
 #: main_test_associative.py:36
 msgid "Precision"
@@ -78,6 +78,10 @@ msgstr "Características"
 #: main_test_associative.py:131
 msgid "Values"
 msgstr "Valores"
+
+#: main_test_associative.py:694
+msgid "Percentage of memory corpus"
+msgstr "Porcentaje del corpus de la memoria"
 
 #, fuzzy
 #~| msgid "-english"
