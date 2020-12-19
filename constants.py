@@ -57,11 +57,8 @@ def model_filename(s, idx = None):
     return filename(s, idx)
 
 
-def image_filename(dir, prefix, stage, idx, label, suffix = ''):
-    # Remove '-'
-    prefix = prefix[:-1]
-
-    image_path = run_path + '/images/' + dir + '/' + prefix + '/' + 'stage_' + str(stage) + '/'
+def image_filename(dir, stage, idx, label, suffix = ''):
+    image_path = run_path + '/images/' + dir + '/' + 'stage_' + str(stage) + '/'
 
     try:
         os.makedirs(image_path)
@@ -73,11 +70,9 @@ def image_filename(dir, prefix, stage, idx, label, suffix = ''):
     return image_path
 
 
-def memory_filename(dir, prefix, msize, stage, idx, label):
+def memory_filename(dir, msize, stage, idx, label):
     # Remove '-'
-    prefix = prefix[:-1]
-
-    image_path = run_path + '/images/' + dir + '/' + prefix + '/' + 'stage_' + str(stage) + '/'
+    image_path = run_path + '/images/' + dir + '/' + 'stage_' + str(stage) + '/'
     image_path += 'msize_' + str(msize) + '/'
 
     try:
@@ -93,16 +88,16 @@ def memory_filename(dir, prefix, msize, stage, idx, label):
 original_suffix = '-original'
 
 
-def original_image_filename(dir, prefix, stage, idx, label):
-    return image_filename(dir, prefix, stage, idx, label, original_suffix)
+def original_image_filename(dir, stage, idx, label):
+    return image_filename(dir, stage, idx, label, original_suffix)
 
 
-def produced_image_filename(dir, prefix, stage, idx, label):
-    return image_filename(dir, prefix, stage, idx, label)
+def produced_image_filename(dir, stage, idx, label):
+    return image_filename(dir, stage, idx, label)
 
 
-def produced_memory_filename(dir, prefix, msize, stage, idx, label):
-    return memory_filename(dir, prefix, msize, stage, idx, label)
+def produced_memory_filename(dir, msize, stage, idx, label):
+    return memory_filename(dir, msize, stage, idx, label)
 
 
 # Categories prefixes.
@@ -112,9 +107,6 @@ data_name = 'data'
 features_name = 'features'
 labels_name = 'labels'
 memories_name = 'memories'
-
-full_prefix = 'full-'
-partial_prefix = 'partial-'
 
 # Categories suffixes.
 training_suffix = '-training'
@@ -130,8 +122,6 @@ model_epochs = 10
 
 nn_training_percent = 0.57  # 0.10 + 0.57 = 0.67
 am_filling_percent = 0.33   # 0.67 + 0.33 = 1.0
-
-
 
 domain = 64
 

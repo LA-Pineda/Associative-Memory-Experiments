@@ -1,3 +1,18 @@
+# Copyright [2020] Luis Alberto Pineda Cortés, Gibrán Fuentes Pineda,
+# Rafael Morales Gamboa.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import sys
 import gc
 import argparse
@@ -256,7 +271,7 @@ def get_ams_results(midx, msize, domain, lpm, trf, tef, trl, tel):
     return (midx, measures, entropy, behaviour)
     
 
-def test_memories(domain, prefix, experiment):
+def test_memories(domain, experiment):
 
     average_entropy = []
     stdev_entropy = []
@@ -278,23 +293,20 @@ def test_memories(domain, prefix, experiment):
     labels_x_memory = constants.labels_per_memory[experiment]
     n_memories = int(constants.n_labels/labels_x_memory)
 
-    if prefix == constants.partial_prefix:
-        suffix = constants.filling_suffix
-    elif prefix == constants.full_prefix:
-        suffix = constants.training_suffix
+    suffix = constants.filling_suffix
 
     for i in range(constants.training_stages):
         gc.collect()
 
-        training_features_filename = prefix + constants.features_name + suffix        
+        training_features_filename = constants.features_name + suffix        
         training_features_filename = constants.data_filename(training_features_filename, i)
-        training_labels_filename = prefix + constants.labels_name + suffix        
+        training_labels_filename = constants.labels_name + suffix        
         training_labels_filename = constants.data_filename(training_labels_filename, i)
 
         suffix = constants.testing_suffix
-        testing_features_filename = prefix + constants.features_name + suffix        
+        testing_features_filename = constants.features_name + suffix        
         testing_features_filename = constants.data_filename(testing_features_filename, i)
-        testing_labels_filename = prefix + constants.labels_name + suffix        
+        testing_labels_filename = constants.labels_name + suffix        
         testing_labels_filename = constants.data_filename(testing_labels_filename, i)
 
         training_features = np.load(training_features_filename)
@@ -553,26 +565,22 @@ def get_stdev(d):
     return stdevs    
     
 
-def test_recalling_fold(n_memories, mem_size, domain, prefix, experiment, fold):
+def test_recalling_fold(n_memories, mem_size, domain, experiment, fold):
     # Create the required associative memories.
     ams = dict.fromkeys(range(n_memories))
     for j in ams:
         ams[j] = AssociativeMemory(domain, mem_size)
 
-    if prefix == constants.partial_prefix:
-        suffix = constants.filling_suffix
-    elif prefix == constants.full_prefix:
-        suffix = constants.training_suffix
-
-    training_features_filename = prefix + constants.features_name + suffix        
+    suffix = constants.filling_suffix
+    training_features_filename = constants.features_name + suffix        
     training_features_filename = constants.data_filename(training_features_filename, fold)
-    training_labels_filename = prefix + constants.labels_name + suffix        
+    training_labels_filename = constants.labels_name + suffix        
     training_labels_filename = constants.data_filename(training_labels_filename, fold)
 
     suffix = constants.testing_suffix
-    testing_features_filename = prefix + constants.features_name + suffix        
+    testing_features_filename = constants.features_name + suffix        
     testing_features_filename = constants.data_filename(testing_features_filename, fold)
-    testing_labels_filename = prefix + constants.labels_name + suffix        
+    testing_labels_filename = constants.labels_name + suffix        
     testing_labels_filename = constants.data_filename(testing_labels_filename, fold)
 
     training_features = np.load(training_features_filename)
@@ -629,7 +637,7 @@ def test_recalling_fold(n_memories, mem_size, domain, prefix, experiment, fold):
     return  fold, stage_recalls, stage_entropies, stage_mprecision, stage_mrecall, np.array(total_recalls)
 
 
-def test_recalling(domain, prefix, mem_size, experiment):
+def test_recalling(domain, mem_size, experiment):
     n_memories = constants.n_labels
 
     all_recalls = {}
@@ -640,7 +648,7 @@ def test_recalling(domain, prefix, mem_size, experiment):
 
     xlabels = constants.memory_fills
     list_results = Parallel(n_jobs=constants.n_jobs, verbose=50)(
-        delayed(test_recalling_fold)(n_memories, mem_size, domain, prefix, experiment, fold) \
+        delayed(test_recalling_fold)(n_memories, mem_size, domain, experiment, fold) \
             for fold in range(constants.training_stages))
 
     for fold, stage_recalls, stage_entropies, stage_mprecision, stage_mrecall, total_recall in list_results:
@@ -664,7 +672,7 @@ def test_recalling(domain, prefix, mem_size, experiment):
         
         tags = np.array(tags)
         memories = np.array(memories)
-        memories_filename = constants.data_filename(prefix+constants.memories_name, fold)
+        memories_filename = constants.data_filename(constants.memories_name, fold)
         np.save(memories_filename, memories)
         tags_filename = prefix + constants.labels_name + constants.memory_suffix
         tags_filename = constants.data_filename(tags_filename, fold)
@@ -714,12 +722,12 @@ def get_all_data(prefix, domain):
 
     return data
 
-def characterize_features(prefix, domain):
-    features_prefix = prefix + constants.features_name
+def characterize_features(domain):
+    features_prefix = constants.features_name
     ff_filename = features_prefix + constants.filling_suffix
     tf_filename = features_prefix + constants.testing_suffix
 
-    labels_prefix = prefix + constants.labels_name
+    labels_prefix = constants.labels_name
     fl_filename = labels_prefix + constants.filling_suffix
     tl_filename = labels_prefix + constants.testing_suffix
 
@@ -751,75 +759,48 @@ def characterize_features(prefix, domain):
 ##############################################################################
 # Main section
 
-CHARACTERIZE_FULL = -5
-CHARACTERIZE_PARTIAL = -4
-TRAIN_NN_FULL = -3
-TRAIN_NN_PARTIAL = -2
-GET_FEATURES_FULL = -1
-GET_FEATURES_PARTIAL = 0
-FIRST_EXP_FULL = 10
-FIRST_EXP_PARTIAL = 1
-SECOND_EXP_FULL = 20
-SECOND_EXP_PARTIAL = 2
-THIRD_EXP_FULL = 30
-THIRD_EXP_PARTIAL = 3
-FOURTH_EXP_FULL = 40
-FOURTH_EXP_PARTIAL = 4
+CHARACTERIZE = -2
+TRAIN_NN = -1
+GET_FEATURES = 0
+FIRST_EXP = 1
+SECOND_EXP = 2
+THIRD_EXP = 3
+FOURTH_EXP = 4
 
 MIN_EXPERIMENT = 1
 MAX_EXPERIMENT = 4
 
 def main(action):
-    if lang == 'es':
-        es.install()
 
-    if (action == TRAIN_NN_FULL) or (action == TRAIN_NN_PARTIAL):
+    if (action == TRAIN_NN):
         # Trains a neural network with those sections of data
         training_percentage = constants.nn_training_percent
-        prefix = constants.partial_prefix
-        if action == TRAIN_NN_FULL:
-            training_percentage += constants.am_filling_percent
-            prefix = constants.full_prefix
-        model_prefix = prefix + constants.model_name
-        stats_prefix = prefix + constants.stats_model_name
+        model_prefix = constants.model_name
+        stats_prefix = constants.stats_model_name
 
         history = convnet.train_networks(training_percentage, model_prefix)
-        # np.savetxt(constants.csv_filename(stats_prefix), loss_acc, delimiter=',')
-    elif (action == GET_FEATURES_FULL) or (action == GET_FEATURES_PARTIAL):
+        np.savetxt(constants.csv_filename(stats_prefix), history, delimiter=',')
+    elif (action == GET_FEATURES):
         # Generates features for the data sections using the previously generate neural network
         training_percentage = constants.nn_training_percent
         am_filling_percentage = constants.am_filling_percent
-        prefix = constants.partial_prefix
-        if action == GET_FEATURES_FULL:
-            training_percentage += constants.am_filling_percent
-            am_filling_percentage = 0.0
-            prefix = constants.full_prefix
-        model_prefix = prefix + constants.model_name
-        features_prefix = prefix + constants.features_name
-        labels_prefix = prefix + constants.labels_name
-        data_prefix = prefix + constants.data_name
+        model_prefix = constants.model_name
+        features_prefix = constants.features_name
+        labels_prefix = constants.labels_name
+        data_prefix = constants.data_name
 
         convnet.obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
             training_percentage, am_filling_percentage)
-    elif action == CHARACTERIZE_PARTIAL:
+    elif action == CHARACTERIZE:
         # The domain size, equal to the size of the output layer of the network.
-        characterize_features(constants.partial_prefix, constants.domain)
-    elif action == CHARACTERIZE_FULL:
+        characterize_features(constants.domain)
+    elif (action == FIRST_EXP) or (action == SECOND_EXP):
         # The domain size, equal to the size of the output layer of the network.
-        characterize_features(constants.full_prefix, constants.domain)
-    elif (action == FIRST_EXP_PARTIAL) or (action == SECOND_EXP_PARTIAL):
-        # The domain size, equal to the size of the output layer of the network.
-        test_memories(constants.domain, constants.partial_prefix, action)
-    elif (action == FIRST_EXP_FULL) or (action == SECOND_EXP_FULL):
-        test_memories(constants.domain, constants.full_prefix, int(action/10))
-    elif (action == THIRD_EXP_PARTIAL):
-        test_recalling(constants.domain, constants.partial_prefix, constants.partial_ideal_memory_size, action)
-    elif (action == THIRD_EXP_FULL):
-        test_recalling(constants.domain, constants.full_prefix, constants.full_ideal_memory_size, int(action/10))
-    elif (action == FOURTH_EXP_PARTIAL):
-        convnet.remember(constants.partial_prefix)
-    elif (action == FOURTH_EXP_FULL):
-        convnet.remember(constants.full_prefix)
+        test_memories(constants.domain, action)
+    elif (action == THIRD_EXP):
+        test_recalling(constants.domain, constants.partial_ideal_memory_size, action)
+    elif (action == FOURTH_EXP):
+        convnet.remember(action)
 
 
 if __name__== "__main__" :
@@ -828,27 +809,18 @@ if __name__== "__main__" :
     parser.add_argument('-l', nargs='?', dest='lang', choices=['en', 'es'], default='en',
                         help='choose between English (en) or Spanish (es) labels for graphs.')
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('-n', action='store_const', const=TRAIN_NN_PARTIAL, dest='action',
+    group.add_argument('-n', action='store_const', const=TRAIN_NN, dest='action',
                         help='train the neural networks, separating NN and AM training data (Separate Data NN).')
-    group.add_argument('-N', action='store_const', const=TRAIN_NN_FULL, dest='action',
-                        help='train the neural networks with standard MNIST distribution (Full Data NN).')
-    group.add_argument('-f', action='store_const', const=GET_FEATURES_PARTIAL, dest='action',
+    group.add_argument('-f', action='store_const', const=GET_FEATURES, dest='action',
                         help='get data features using the separate data neural networks.')
-    group.add_argument('-F', action='store_const', const=GET_FEATURES_FULL, dest='action',
-                        help='get data features using the full data neural networks.')
-    group.add_argument('-c', action='store_const', const=CHARACTERIZE_PARTIAL, dest='action',
+    group.add_argument('-c', action='store_const', const=CHARACTERIZE, dest='action',
                         help='characterize the features from partial data neural networks by class.')
-    group.add_argument('-C', action='store_const', const=CHARACTERIZE_FULL, dest='action',
-                        help='characterize the features from full data neural networks by class.')
-    group.add_argument('-e', nargs='?', dest='m', type=int, 
+    group.add_argument('-e', nargs='?', dest='n', type=int, 
                         help='run the experiment with that number, using separate data neural networks.')
-    group.add_argument('-E', nargs='?', dest='n', type=int, 
-                        help='run the experiment with that number, using full data neural networks.')
 
     args = parser.parse_args()
     action = args.action
     lang = args.lang
-    m = args.m
     n = args.n
     
     if lang == 'es':
@@ -856,15 +828,13 @@ if __name__== "__main__" :
         es.install()
  
     if action is None:
-        e = m if n is None else n
         # An experiment was chosen
-        if (e < MIN_EXPERIMENT) or (e > MAX_EXPERIMENT):
-            print_error("There are only {1} experiments available, numbered consecutively from from {0}.".format(
-                MIN_EXPERIMENT, MAX_EXPERIMENT
-            ))
+        if (n < MIN_EXPERIMENT) or (n > MAX_EXPERIMENT):
+            print_error("There are only {1} experiments available, numbered consecutively from from {0}."
+                .format(MIN_EXPERIMENT, MAX_EXPERIMENT))
             exit(1)
         else:
-            main(m if n is None else int(n*10))
+            main(n)
     else:
         main(action)
 

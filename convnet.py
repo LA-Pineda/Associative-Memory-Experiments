@@ -147,11 +147,9 @@ def train_networks(training_percentage, filename):
     return stats.history
 
 
-def store_images(original, produced, directory, prefix, stage, idx, label):
-    original_filename = constants.original_image_filename(directory,
-        prefix, stage, idx, label)
-    produced_filename = constants.produced_image_filename(directory,
-        prefix, stage, idx, label)
+def store_images(original, produced, directory, stage, idx, label):
+    original_filename = constants.original_image_filename(directory, stage, idx, label)
+    produced_filename = constants.produced_image_filename(directory, stage, idx, label)
 
     pixels = original.reshape(28,28) * 255
     pixels = pixels.round().astype(np.uint8)
@@ -161,10 +159,9 @@ def store_images(original, produced, directory, prefix, stage, idx, label):
     png.from_array(pixels, 'L;8').save(produced_filename)
 
 
-def store_memories(labels, produced, features, directory, prefix, stage, msize):
+def store_memories(labels, produced, features, directory, stage, msize):
     (idx, label) = labels
-    produced_filename = constants.produced_memory_filename(directory,
-        prefix, msize, stage, idx, label)
+    produced_filename = constants.produced_memory_filename(directory, msize, stage, idx, label)
 
     if np.isnan(np.sum(features)):
         pixels = np.full((28,28), 255)
@@ -243,20 +240,20 @@ def obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
         n += 1
 
 
-def remember(prefix):
+def remember(experiment):
 
     for i in range(constants.training_stages):
-        testing_data_filename = prefix + constants.data_name + constants.testing_suffix
+        testing_data_filename = constants.data_name + constants.testing_suffix
         testing_data_filename = constants.data_filename(testing_data_filename, i)
-        testing_features_filename = prefix + constants.features_name + constants.testing_suffix
+        testing_features_filename = constants.features_name + constants.testing_suffix
         testing_features_filename = constants.data_filename(testing_features_filename, i)
-        testing_labels_filename = prefix + constants.labels_name + constants.testing_suffix
+        testing_labels_filename = constants.labels_name + constants.testing_suffix
         testing_labels_filename = constants.data_filename(testing_labels_filename, i)
-        memories_filename = prefix + constants.memories_name
+        memories_filename = constants.memories_name
         memories_filename = constants.data_filename(memories_filename, i)
-        labels_filename = prefix + constants.labels_name + constants.memory_suffix
+        labels_filename = constants.labels_name + constants.memory_suffix
         labels_filename = constants.data_filename(labels_filename, i)
-        model_filename = constants.model_filename(prefix + constants.model_name, i)
+        model_filename = constants.model_filename(constants.model_name, i)
 
         testing_data = np.load(testing_data_filename)
         testing_features = np.load(testing_features_filename)
@@ -282,7 +279,7 @@ def remember(prefix):
         n = len(testing_labels)
 
         Parallel(n_jobs=constants.n_jobs, verbose=5)( \
-            delayed(store_images)(original, produced, constants.testing_directory, prefix, i, j, label) \
+            delayed(store_images)(original, produced, constants.testing_directory, i, j, label) \
                 for (j, original, produced, label) in \
                     zip(range(n), testing_data, produced_images, testing_labels))
 
@@ -299,5 +296,5 @@ def remember(prefix):
             produced_images = decoder.predict(mem_data)
 
             Parallel(n_jobs=constants.n_jobs, verbose=5)( \
-                delayed(store_memories)(label, produced, features, constants.memories_directory, prefix, i, j) \
+                delayed(store_memories)(label, produced, features, constants.memories_directory, i, j) \
                     for (produced, features, label) in zip(produced_images, mem_data, mem_labels))
