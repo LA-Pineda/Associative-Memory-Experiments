@@ -56,7 +56,7 @@ def plot_pre_graph (pre_mean, rec_mean, ent_mean, pre_std, rec_std, ent_std, \
 
     if xtitle is None:
         xtitle = _('Range Quantization Levels')
-    if ytitlte is None: 
+    if ytitle is None: 
         ytitle = _('Percentage')
 
     plt.xlabel(xtitle)
@@ -71,7 +71,7 @@ def plot_pre_graph (pre_mean, rec_mean, ent_mean, pre_std, rec_std, ent_std, \
     cbar.ax.set_xticklabels(entropy_labels)
     cbar.set_label(_('Entropy'))
 
-    plt.savefig(constants.picture_filename(tag + 'graph_l4_MEAN-{0}'.format(action) + _('-english')), dpi=500)
+    plt.savefig(constants.picture_filename(tag + 'graph_prse_MEAN-{0}'.format(action) + _('-english')), dpi=500)
 
 
 def plot_size_graph (response_size, size_stdev, action=None):
@@ -125,7 +125,7 @@ def plot_behs_graph(no_response, no_correct, no_chosen, correct, action=None):
     plt.savefig(constants.picture_filename('graph_behaviours_MEAN-{0}'.format(action) + _('-english')), dpi=500)
 
 
-def plot_features_graph(prefix, domain, means, stdevs):
+def plot_features_graph(domain, means, stdevs):
     ymin = np.PINF
     ymax = np.NINF
     for i in constants.all_labels:
@@ -152,7 +152,7 @@ def plot_features_graph(prefix, domain, means, stdevs):
         plt.legend(loc='right')
         plt.grid(True)
 
-        filename = prefix + constants.features_name + '-' + str(i) + _('-english')
+        filename = constants.features_name + '-' + str(i) + _('-english')
         plt.savefig(constants.picture_filename(filename), dpi=500)
 
 
@@ -751,7 +751,7 @@ def characterize_features(domain):
         means[i] = np.mean(d[i], axis=0)
         stdevs[i] = np.std(d[i], axis=0)
 
-    plot_features_graph(prefix, domain, means, stdevs)
+    plot_features_graph(domain, means, stdevs)
     
     
 
