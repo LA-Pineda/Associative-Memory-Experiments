@@ -23,6 +23,7 @@ from joblib import Parallel, delayed
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import random
+import json
 
 import constants
 import convnet
@@ -779,7 +780,14 @@ def main(action):
         stats_prefix = constants.stats_model_name
 
         history = convnet.train_networks(training_percentage, model_prefix)
-        np.savetxt(constants.csv_filename(stats_prefix), history, delimiter=',')
+
+        stats = {}
+        stats['history'] = []
+        for h in history:
+            stats['history'].append(h.history)
+
+        with open(constants.csv_filename(stats_prefix), 'w') as outfile:
+            json.dump(stats, outfile)
     elif (action == GET_FEATURES):
         # Generates features for the data sections using the previously generate neural network
         training_percentage = constants.nn_training_percent

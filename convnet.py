@@ -133,7 +133,7 @@ def train_networks(training_percentage, filename):
 
         model.summary()
 
-        stats = model.fit(training_data,
+        history = model.fit(training_data,
                 (training_labels, training_data),
                 batch_size=100,
                 epochs=EPOCHS,
@@ -141,10 +141,11 @@ def train_networks(training_percentage, filename):
                     {'classification': testing_labels, 'autoencoder': testing_data}),
                 verbose=2)
 
+        stats.append(history)
         model.save(constants.model_filename(filename, n))
         n += 1
 
-    return stats.history
+    return stats
 
 
 def store_images(original, produced, directory, stage, idx, label):
