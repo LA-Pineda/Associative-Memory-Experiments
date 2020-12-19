@@ -126,7 +126,7 @@ def plot_behs_graph(no_response, no_correct, no_chosen, correct, action=None):
     plt.savefig(constants.picture_filename('graph_behaviours_MEAN-{0}'.format(action) + _('-english')), dpi=500)
 
 
-def plot_features_graph(domain, means, stdevs):
+def plot_features_graph(domain, means, stdevs, experiment):
     ymin = np.PINF
     ymax = np.NINF
     for i in constants.all_labels:
@@ -153,7 +153,7 @@ def plot_features_graph(domain, means, stdevs):
         plt.legend(loc='right')
         plt.grid(True)
 
-        filename = constants.features_name + '-' + str(i) + _('-english')
+        filename = constants.features_name(experiment) + '-' + str(i) + _('-english')
         plt.savefig(constants.picture_filename(filename), dpi=500)
 
 
@@ -299,13 +299,13 @@ def test_memories(domain, experiment):
     for i in range(constants.training_stages):
         gc.collect()
 
-        training_features_filename = constants.features_name + suffix        
+        training_features_filename = constants.features_name(experiment) + suffix        
         training_features_filename = constants.data_filename(training_features_filename, i)
         training_labels_filename = constants.labels_name + suffix        
         training_labels_filename = constants.data_filename(training_labels_filename, i)
 
         suffix = constants.testing_suffix
-        testing_features_filename = constants.features_name + suffix        
+        testing_features_filename = constants.features_name(experiment) + suffix        
         testing_features_filename = constants.data_filename(testing_features_filename, i)
         testing_labels_filename = constants.labels_name + suffix        
         testing_labels_filename = constants.data_filename(testing_labels_filename, i)
@@ -573,13 +573,13 @@ def test_recalling_fold(n_memories, mem_size, domain, experiment, fold):
         ams[j] = AssociativeMemory(domain, mem_size)
 
     suffix = constants.filling_suffix
-    training_features_filename = constants.features_name + suffix        
+    training_features_filename = constants.features_name(experiment) + suffix        
     training_features_filename = constants.data_filename(training_features_filename, fold)
     training_labels_filename = constants.labels_name + suffix        
     training_labels_filename = constants.data_filename(training_labels_filename, fold)
 
     suffix = constants.testing_suffix
-    testing_features_filename = constants.features_name + suffix        
+    testing_features_filename = constants.features_name(experiment) + suffix        
     testing_features_filename = constants.data_filename(testing_features_filename, fold)
     testing_labels_filename = constants.labels_name + suffix        
     testing_labels_filename = constants.data_filename(testing_labels_filename, fold)
@@ -723,8 +723,8 @@ def get_all_data(prefix, domain):
 
     return data
 
-def characterize_features(domain):
-    features_prefix = constants.features_name
+def characterize_features(domain, experiment):
+    features_prefix = constants.features_name(experiment)
     ff_filename = features_prefix + constants.filling_suffix
     tf_filename = features_prefix + constants.testing_suffix
 
@@ -752,7 +752,7 @@ def characterize_features(domain):
         means[i] = np.mean(d[i], axis=0)
         stdevs[i] = np.std(d[i], axis=0)
 
-    plot_features_graph(domain, means, stdevs)
+    plot_features_graph(domain, means, stdevs, action)
     
     
 
@@ -782,7 +782,7 @@ def main(action):
         training_percentage = constants.nn_training_percent
         am_filling_percentage = constants.am_filling_percent
         model_prefix = constants.model_name
-        features_prefix = constants.features_name
+        features_prefix = constants.features_name(action)
         labels_prefix = constants.labels_name
         data_prefix = constants.data_name
 
@@ -790,7 +790,7 @@ def main(action):
             training_percentage, am_filling_percentage)
     elif action == constants.CHARACTERIZE:
         # The domain size, equal to the size of the output layer of the network.
-        characterize_features(constants.domain)
+        characterize_features(constants.domain, action)
     elif (action == constants.FIRST_EXP) or (action == constants.SECOND_EXP):
         # The domain size, equal to the size of the output layer of the network.
         test_memories(constants.domain, action)

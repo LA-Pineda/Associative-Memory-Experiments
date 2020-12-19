@@ -118,11 +118,23 @@ def produced_memory_filename(dir, msize, stage, idx, label):
     return memory_filename(dir, msize, stage, idx, label)
 
 
+features_prefix = 'features'
+experiment_defaul_suffix = ''
+experiment_suffix = ['', '', '', '', '',
+    '-top_hidden', '-bottom_hidden', '-left_hidden', '-right_hidden']
+
+
+def features_name(i):
+    if i  < 0:
+        return features_prefix
+    else
+        return features_prefix + experiment_suffix[i]
+
+
 # Categories prefixes.
 model_name = 'model'
 stats_model_name = 'model_stats'
 data_name = 'data'
-features_name = 'features'
 labels_name = 'labels'
 memories_name = 'memories'
 
