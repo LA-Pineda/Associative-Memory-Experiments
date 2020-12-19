@@ -760,20 +760,9 @@ def characterize_features(domain):
 ##############################################################################
 # Main section
 
-CHARACTERIZE = -2
-TRAIN_NN = -1
-GET_FEATURES = 0
-FIRST_EXP = 1
-SECOND_EXP = 2
-THIRD_EXP = 3
-FOURTH_EXP = 4
-
-MIN_EXPERIMENT = 1
-MAX_EXPERIMENT = 4
-
 def main(action):
 
-    if (action == TRAIN_NN):
+    if (action == constants.TRAIN_NN):
         # Trains a neural network with those sections of data
         training_percentage = constants.nn_training_percent
         model_prefix = constants.model_name
@@ -788,7 +777,7 @@ def main(action):
 
         with open(constants.json_filename(stats_prefix), 'w') as outfile:
             json.dump(stats, outfile)
-    elif (action == GET_FEATURES):
+    elif (action == constants.GET_FEATURES):
         # Generates features for the data sections using the previously generate neural network
         training_percentage = constants.nn_training_percent
         am_filling_percentage = constants.am_filling_percent
@@ -799,15 +788,15 @@ def main(action):
 
         convnet.obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
             training_percentage, am_filling_percentage)
-    elif action == CHARACTERIZE:
+    elif action == constants.CHARACTERIZE:
         # The domain size, equal to the size of the output layer of the network.
         characterize_features(constants.domain)
-    elif (action == FIRST_EXP) or (action == SECOND_EXP):
+    elif (action == constants.FIRST_EXP) or (action == constants.SECOND_EXP):
         # The domain size, equal to the size of the output layer of the network.
         test_memories(constants.domain, action)
-    elif (action == THIRD_EXP):
+    elif (action == constants.THIRD_EXP):
         test_recalling(constants.domain, constants.partial_ideal_memory_size, action)
-    elif (action == FOURTH_EXP):
+    elif (action == constants.FOURTH_EXP):
         convnet.remember(action)
 
 
@@ -817,11 +806,11 @@ if __name__== "__main__" :
     parser.add_argument('-l', nargs='?', dest='lang', choices=['en', 'es'], default='en',
                         help='choose between English (en) or Spanish (es) labels for graphs.')
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('-n', action='store_const', const=TRAIN_NN, dest='action',
+    group.add_argument('-n', action='store_const', const=constants.TRAIN_NN, dest='action',
                         help='train the neural networks, separating NN and AM training data (Separate Data NN).')
-    group.add_argument('-f', action='store_const', const=GET_FEATURES, dest='action',
+    group.add_argument('-f', action='store_const', const=constants.GET_FEATURES, dest='action',
                         help='get data features using the separate data neural networks.')
-    group.add_argument('-c', action='store_const', const=CHARACTERIZE, dest='action',
+    group.add_argument('-c', action='store_const', const=constants.CHARACTERIZE, dest='action',
                         help='characterize the features from partial data neural networks by class.')
     group.add_argument('-e', nargs='?', dest='n', type=int, 
                         help='run the experiment with that number, using separate data neural networks.')
@@ -837,9 +826,9 @@ if __name__== "__main__" :
  
     if action is None:
         # An experiment was chosen
-        if (n < MIN_EXPERIMENT) or (n > MAX_EXPERIMENT):
+        if (n < constants.MIN_EXPERIMENT) or (n > constants.MAX_EXPERIMENT):
             print_error("There are only {1} experiments available, numbered consecutively from from {0}."
-                .format(MIN_EXPERIMENT, MAX_EXPERIMENT))
+                .format(constants.MIN_EXPERIMENT, constants.MAX_EXPERIMENT))
             exit(1)
         else:
             main(n)

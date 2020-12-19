@@ -76,6 +76,18 @@ def image_filename(dir, stage, idx, label, suffix = ''):
     return image_path
 
 
+testing_path = 'test'
+memories_path = 'memories'
+
+
+def testing_directory(i):
+    return testing_path + '-' + str(i).zfill(3)
+
+
+def memories_directory(i):
+    return memories_path + '-' + str(i).zfill(3)
+
+
 def memory_filename(dir, msize, stage, idx, label):
     # Remove '-'
     image_path = run_path + '/images/' + dir + '/' + 'stage_' + str(stage) + '/'
@@ -120,9 +132,6 @@ filling_suffix = '-filling'
 testing_suffix = '-testing'
 memory_suffix = '-memories'
 
-testing_directory = 'test'
-memories_directory = 'memories'
-
 training_stages = 10        # 0.10 of data.
 model_epochs = 10
 
@@ -158,3 +167,14 @@ memory_sizes = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
 memory_fills = [1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 100.0]
 partial_ideal_memory_size = 32
 full_ideal_memory_size = 64
+
+CHARACTERIZE = -2
+TRAIN_NN = -1
+GET_FEATURES = 0
+FIRST_EXP = 1
+SECOND_EXP = 2
+THIRD_EXP = 3
+FOURTH_EXP = 4
+
+MIN_EXPERIMENT = 1
+MAX_EXPERIMENT = 4

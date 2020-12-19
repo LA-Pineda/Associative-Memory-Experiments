@@ -280,7 +280,7 @@ def remember(experiment):
         n = len(testing_labels)
 
         Parallel(n_jobs=constants.n_jobs, verbose=5)( \
-            delayed(store_images)(original, produced, constants.testing_directory, i, j, label) \
+            delayed(store_images)(original, produced, constants.testing_directory(experiment), i, j, label) \
                 for (j, original, produced, label) in \
                     zip(range(n), testing_data, produced_images, testing_labels))
 
@@ -297,5 +297,5 @@ def remember(experiment):
             produced_images = decoder.predict(mem_data)
 
             Parallel(n_jobs=constants.n_jobs, verbose=5)( \
-                delayed(store_memories)(label, produced, features, constants.memories_directory, i, j) \
+                delayed(store_memories)(label, produced, features, constants.memories_directory(experiment), i, j) \
                     for (produced, features, label) in zip(produced_images, mem_data, mem_labels))
