@@ -35,6 +35,12 @@ def filename(s, idx = None, extension = ''):
         return run_path + '/' + s + '-' + str(idx).zfill(3) + extension
 
 
+def json_filename(s, idx = None):
+    """ Returns a file name for csv(i) in run_path directory
+    """
+    return filename(s, idx, '.json')
+
+
 def csv_filename(s, idx = None):
     """ Returns a file name for csv(i) in run_path directory
     """

@@ -786,7 +786,7 @@ def main(action):
         for h in history:
             stats['history'].append(h.history)
 
-        with open(constants.csv_filename(stats_prefix), 'w') as outfile:
+        with open(constants.json_filename(stats_prefix), 'w') as outfile:
             json.dump(stats, outfile)
     elif (action == GET_FEATURES):
         # Generates features for the data sections using the previously generate neural network
