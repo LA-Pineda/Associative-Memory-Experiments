@@ -17,8 +17,8 @@
 
 runs_dir='runs'
 imag_dir="${runs_dir}/images"
-test_dir="${imag_dir}/test/partial"
-mems_dir="${imag_dir}/memories/partial"
+test_dir="${imag_dir}/test"
+mems_dir="${imag_dir}/memories"
 
 if [ "$#" -ne 1 ]; then
     echo "Usage: $0 stage-id.txt"

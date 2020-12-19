@@ -17,8 +17,8 @@
 
 runs_dir='runs'
 imag_dir="${runs_dir}/images"
-test_dir="${imag_dir}/test/partial"
-mems_dir="${imag_dir}/memories/partial"
+test_dir="${imag_dir}/test"
+mems_dir="${imag_dir}/memories"
 random_dir=`openssl rand -hex 4`
 random_dir=${imag_dir}/${random_dir}
 
