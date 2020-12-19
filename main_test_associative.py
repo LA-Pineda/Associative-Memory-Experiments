@@ -675,7 +675,7 @@ def test_recalling(domain, mem_size, experiment):
         memories = np.array(memories)
         memories_filename = constants.data_filename(constants.memories_name, fold)
         np.save(memories_filename, memories)
-        tags_filename = prefix + constants.labels_name + constants.memory_suffix
+        tags_filename = constants.labels_name + constants.memory_suffix
         tags_filename = constants.data_filename(tags_filename, fold)
         np.save(tags_filename, tags)
 
