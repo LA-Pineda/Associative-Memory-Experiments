@@ -54,7 +54,7 @@ def add_noise(data, experiment):
     elif (experiment == LEFT_HIDDEN):
         origin = (0, 0)
         end = (img_rows, mid_col)
-    elif (experiment == BOTTOM_HIDDEN):
+    elif (experiment == RIGHT_HIDDEN):
         origin = (0, mid_col)
         end = (img_rows, img_columns)
 
