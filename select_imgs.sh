@@ -1,4 +1,4 @@
-#! /usr/bin/bash
+#! /bin/bash
 
 # Copyright [2020] Luis Alberto Pineda Cortés, Gibrán Fuentes Pineda,
 # Rafael Morales Gamboa.
