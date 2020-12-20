@@ -27,7 +27,49 @@ import constants
 img_rows = 28
 img_columns = 28
 
-def get_data(one_hot = False):
+NO_NOISE = constants.FOURTH_EXP
+TOP_HIDDEN = constants.FIFTH_EXP
+BOTTOM_HIDDEN = constants.SIXTH_EXP
+LEFT_HIDDEN = constants.SEVENTH_EXP
+RIGHT_HIDDEN = constants.EIGHTTH_EXP
+
+
+def add_noise(data, experiment):
+    # data is assumed to be a numpy array of shape (N, img_rows, img_columns)
+
+    if experiment <= constants.NO_NOISE:
+        return data
+
+    mid_row = int(img_rows/2)
+    mid_col = int(img_columns/2)
+    origin = (0, 0)
+    end = (0, 0)
+
+    if (experiment == TOP_HIDDEN):
+        origin = (0, 0)
+        end = (mid_row, img_columns)
+    elif (experiment == BOTTOM_HIDDEN):
+        origin = (mid_row, 0)
+        end = (img_rows, img_columns)
+    elif (experiment == LEFT_HIDDEN):
+        origin = (0, 0)
+        end = (img_rows, mid_col)
+    elif (experiment == BOTTOM_HIDDEN):
+        origin = (0, mid_col)
+        end = (img_rows, img_columns)
+
+    for image in data:
+        n, m = origin
+        end_n, end_m = end
+
+        for i in range(n, end_n):
+            for j in range(m, end_m):
+                image[i,j] = 0
+
+    return data
+
+
+def get_data(experiment, one_hot = False):
 
    # Load MNIST data, as part of TensorFlow.
     mnist = tf.keras.datasets.mnist
@@ -36,8 +78,11 @@ def get_data(one_hot = False):
     all_data = np.concatenate((train_images, test_images), axis=0)
     all_labels = np.concatenate((train_labels, test_labels), axis= 0)
 
+    all_data = add_noise(all_data, experiment)
+
     all_data = all_data.reshape((70000, img_columns, img_rows, 1))
     all_data = all_data.astype('float32') / 255
+
 
     if one_hot:
         # Changes labels to binary rows. Each label correspond to a column, and only
@@ -91,12 +136,12 @@ def get_classifier(encoded):
     return classification
 
 
-def train_networks(training_percentage, filename):
+def train_networks(training_percentage, filename, experiment):
 
     EPOCHS = constants.model_epochs
     stages = constants.training_stages
 
-    (data, labels) = get_data(one_hot=True)
+    (data, labels) = get_data(experiment, one_hot=True)
 
     total = len(data)
     step = int(total/stages)
@@ -173,8 +218,8 @@ def store_memories(labels, produced, features, directory, stage, msize):
 
 
 def obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
-            training_percentage, am_filling_percentage):
-    (data, labels) = get_data()
+            training_percentage, am_filling_percentage, experiment):
+    (data, labels) = get_data(experiment)
 
     total = len(data)
     step = int(total/constants.training_stages)

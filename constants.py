@@ -124,7 +124,7 @@ experiment_suffix = ['', '', '', '', '',
     '-top_hidden', '-bottom_hidden', '-left_hidden', '-right_hidden']
 
 
-def features_name(i):
+def features_name(i = -1):
     if i  < 0:
         return features_prefix
     else:
@@ -187,6 +187,10 @@ FIRST_EXP = 1
 SECOND_EXP = 2
 THIRD_EXP = 3
 FOURTH_EXP = 4
+FIFTH_EXP = 5
+SIXTH_EXP = 6
+SEVENTH_EXP = 7
+EIGHTTH_EXP = 8
 
 MIN_EXPERIMENT = 1
-MAX_EXPERIMENT = 4
+MAX_EXPERIMENT = 5

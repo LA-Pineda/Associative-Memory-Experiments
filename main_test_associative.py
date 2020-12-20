@@ -573,7 +573,7 @@ def test_recalling_fold(n_memories, mem_size, domain, experiment, fold):
         ams[j] = AssociativeMemory(domain, mem_size)
 
     suffix = constants.filling_suffix
-    training_features_filename = constants.features_name(experiment) + suffix        
+    training_features_filename = constants.features_name() + suffix        
     training_features_filename = constants.data_filename(training_features_filename, fold)
     training_labels_filename = constants.labels_name + suffix        
     training_labels_filename = constants.data_filename(training_labels_filename, fold)
@@ -768,7 +768,7 @@ def main(action):
         model_prefix = constants.model_name
         stats_prefix = constants.stats_model_name
 
-        history = convnet.train_networks(training_percentage, model_prefix)
+        history = convnet.train_networks(training_percentage, model_prefix, action)
 
         stats = {}
         stats['history'] = []
@@ -787,7 +787,7 @@ def main(action):
         data_prefix = constants.data_name
 
         convnet.obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
-            training_percentage, am_filling_percentage)
+            training_percentage, am_filling_percentage, action)
     elif action == constants.CHARACTERIZE:
         # The domain size, equal to the size of the output layer of the network.
         characterize_features(constants.domain, action)
@@ -798,8 +798,20 @@ def main(action):
         test_recalling(constants.domain, constants.partial_ideal_memory_size, action)
     elif (action == constants.FOURTH_EXP):
         convnet.remember(action)
+    elif (action >= constants.FIFTH_EXP) and (action <= constants.EIGHTTH_EXP):
+        # Generates features for the data sections using the previously generate
+        # neural network, introducing half image noise in data.
+        training_percentage = constants.nn_training_percent
+        am_filling_percentage = constants.am_filling_percent
+        model_prefix = constants.model_name
+        features_prefix = constants.features_name(action)
+        labels_prefix = constants.labels_name
+        data_prefix = constants.data_name
 
-
+        convnet.obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
+            training_percentage, am_filling_percentage, action)
+        test_recalling(constants.domain, constants.partial_ideal_memory_size, action)
+        convnet.remember(action)
 if __name__== "__main__" :
 
     parser = argparse.ArgumentParser(description='Associative Memory Experimenter.')
