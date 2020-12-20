@@ -30,7 +30,7 @@ fi
 exp_no=`printf %03d $1`
 test_dir="${test_dir}-$exp_no"
 mems_dir="${mems_dir}-$exp_no"
-imag_dir="${imag_dir}-$exp_no"
+imag_dir="${imag_dir}/$exp_no"
 
 if [ ! -d "$test_dir" ] || [ ! -d "$mems_dir" ]; then
     echo "Directories for $exp_no do not exist!"
@@ -38,14 +38,14 @@ if [ ! -d "$test_dir" ] || [ ! -d "$mems_dir" ]; then
 fi
 
 
-random_dir=`basename $1 .txt`
+random_dir=`basename $2 .txt`
 random_dir=${imag_dir}/${random_dir}
 
 if [ ! -d ${random_dir}  ]; then
     mkdir -p ${random_dir}
 fi
 
-pair_fn=$1
+pair_fn=$2
 
 for i in `cat $pair_fn`; do 
     IFS=',' read stage id <<< "${i}"
