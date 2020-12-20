@@ -121,7 +121,8 @@ def produced_memory_filename(dir, msize, stage, idx, label):
 features_prefix = 'features'
 experiment_defaul_suffix = ''
 experiment_suffix = ['', '', '', '', '',
-    '-top_hidden', '-bottom_hidden', '-left_hidden', '-right_hidden']
+    '-top_hidden', '-bottom_hidden', '-left_hidden', '-right_hidden',
+    '-top_hidwhi', '-bottom_hidwhi', '-left_hidwhi', '-right_hidwhi']
 
 def features_name(i = -1):
     if i  < 0:
