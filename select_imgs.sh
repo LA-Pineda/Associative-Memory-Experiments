@@ -20,17 +20,29 @@ imag_dir="${runs_dir}/images"
 test_dir="${imag_dir}/test"
 mems_dir="${imag_dir}/memories"
 
-if [ "$#" -ne 1 ]; then
-    echo "Usage: $0 stage-id.txt"
-    echo "Where stage-id.txt is a text file (must have .txt extension) with pairs of stage and id"
+if [ "$#" -ne 2 ]; then
+    echo "Usage: $0 exp_no stage-id.txt"
+    echo "Where exp_no is the experiment number and stage-id.txt is a"
+    echo "text file (must have .txt extension) with pairs of stage and id"
     exit 1
 fi
+
+exp_no=`printf %03d $1`
+test_dir="${test_dir}-$exp_no"
+mems_dir="${mems_dir}-$exp_no"
+imag_dir="${imag_dir}-$exp_no"
+
+if [ ! -d "$test_dir" ] || [ ! -d "$mems_dir" ]; then
+    echo "Directories for $exp_no do not exist!"
+    exit 2
+fi
+
 
 random_dir=`basename $1 .txt`
 random_dir=${imag_dir}/${random_dir}
 
 if [ ! -d ${random_dir}  ]; then
-    mkdir ${random_dir}
+    mkdir -p ${random_dir}
 fi
 
 pair_fn=$1
