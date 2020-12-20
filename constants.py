@@ -123,12 +123,20 @@ experiment_defaul_suffix = ''
 experiment_suffix = ['', '', '', '', '',
     '-top_hidden', '-bottom_hidden', '-left_hidden', '-right_hidden']
 
-
 def features_name(i = -1):
     if i  < 0:
         return features_prefix
     else:
         return features_prefix + experiment_suffix[i]
+
+
+memories_prefix = 'memories'
+
+def memories_name(i = -1):
+    if i  < 0:
+        return memories_prefix
+    else:
+        return memories_prefix + experiment_suffix[i]
 
 
 # Categories prefixes.

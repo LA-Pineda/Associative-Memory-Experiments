@@ -295,7 +295,7 @@ def remember(experiment):
         testing_features_filename = constants.data_filename(testing_features_filename, i)
         testing_labels_filename = constants.labels_name + constants.testing_suffix
         testing_labels_filename = constants.data_filename(testing_labels_filename, i)
-        memories_filename = constants.memories_name
+        memories_filename = constants.memories_name(experiment)
         memories_filename = constants.data_filename(memories_filename, i)
         labels_filename = constants.labels_name + constants.memory_suffix
         labels_filename = constants.data_filename(labels_filename, i)
