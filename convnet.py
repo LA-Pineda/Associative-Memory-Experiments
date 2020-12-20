@@ -27,34 +27,36 @@ import constants
 img_rows = 28
 img_columns = 28
 
-NO_NOISE = constants.FOURTH_EXP
-TOP_HIDDEN = constants.FIFTH_EXP
-BOTTOM_HIDDEN = constants.SIXTH_EXP
-LEFT_HIDDEN = constants.SEVENTH_EXP
-RIGHT_HIDDEN = constants.EIGHTTH_EXP
 
 
 def add_noise(data, experiment):
     # data is assumed to be a numpy array of shape (N, img_rows, img_columns)
 
-    if experiment <= NO_NOISE:
+    if experiment < constants.EXP_5:
         return data
+
+    top_hidden = (experiment == constants.EXP_5) or (experiment == constants.EXP_9)
+    bottom_hidden = (experiment == constants.EXP_6) or (experiment == constants.EXP_10)
+    left_hidden = (experiment == constants.EXP_7) or (experiment == constants.EXP_11)
+    right_hidden = (experiment == constants.EXP_8) or (experiment == constants.EXP_12)
+
+    noise_value = 0 if experiment < constants.EXP_9 else 1
 
     mid_row = int(img_rows/2)
     mid_col = int(img_columns/2)
     origin = (0, 0)
     end = (0, 0)
 
-    if (experiment == TOP_HIDDEN):
+    if top_hidden:
         origin = (0, 0)
         end = (mid_row, img_columns)
-    elif (experiment == BOTTOM_HIDDEN):
+    elif bottom_hidden:
         origin = (mid_row, 0)
         end = (img_rows, img_columns)
-    elif (experiment == LEFT_HIDDEN):
+    elif left_hidden:
         origin = (0, 0)
         end = (img_rows, mid_col)
-    elif (experiment == RIGHT_HIDDEN):
+    elif right_hidden:
         origin = (0, mid_col)
         end = (img_rows, img_columns)
 
@@ -64,7 +66,7 @@ def add_noise(data, experiment):
 
         for i in range(n, end_n):
             for j in range(m, end_m):
-                image[i,j] = 0
+                image[i,j] = noise_value
 
     return data
 

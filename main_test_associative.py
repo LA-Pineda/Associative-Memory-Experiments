@@ -792,16 +792,16 @@ def main(action):
     elif action == constants.CHARACTERIZE:
         # The domain size, equal to the size of the output layer of the network.
         characterize_features(constants.domain, action)
-    elif (action == constants.FIRST_EXP) or (action == constants.SECOND_EXP):
+    elif (action == constants.EXP_1) or (action == constants.EXP_2):
         # The domain size, equal to the size of the output layer of the network.
         test_memories(constants.domain, action)
-    elif (action == constants.THIRD_EXP):
+    elif (action == constants.EXP_3):
         test_recalling(constants.domain, constants.partial_ideal_memory_size, action)
-    elif (action == constants.FOURTH_EXP):
+    elif (action == constants.EXP_4):
         convnet.remember(action)
-    elif (action >= constants.FIFTH_EXP) and (action <= constants.EIGHTTH_EXP):
+    elif (action >= constants.EXP_5) and (action <= constants.EXP_12):
         # Generates features for the data sections using the previously generate
-        # neural network, introducing half image noise in data.
+        # neural network, introducing half image noise in data, either black or white.
         training_percentage = constants.nn_training_percent
         am_filling_percentage = constants.am_filling_percent
         model_prefix = constants.model_name
