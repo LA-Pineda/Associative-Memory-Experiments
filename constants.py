@@ -144,7 +144,6 @@ model_name = 'model'
 stats_model_name = 'model_stats'
 data_name = 'data'
 labels_name = 'labels'
-memories_name = 'memories'
 
 # Categories suffixes.
 training_suffix = '-training'
