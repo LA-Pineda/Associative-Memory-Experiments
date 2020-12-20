@@ -37,7 +37,7 @@ RIGHT_HIDDEN = constants.EIGHTTH_EXP
 def add_noise(data, experiment):
     # data is assumed to be a numpy array of shape (N, img_rows, img_columns)
 
-    if experiment <= constants.NO_NOISE:
+    if experiment <= NO_NOISE:
         return data
 
     mid_row = int(img_rows/2)
