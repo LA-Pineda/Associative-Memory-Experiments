@@ -67,5 +67,5 @@ done
 join_imgs=`find ${random_dir} -type f -name '*.png' -print| sort`
 final_img=${random_dir}/'all.png'
 convert $(echo $join_imgs) +append ${final_img}
-mogrify -scale '1000%' ${final_img}
+# mogrify -scale '1000%' ${final_img}
 
