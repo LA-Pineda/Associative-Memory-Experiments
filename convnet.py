@@ -40,7 +40,7 @@ def add_noise(data, experiment):
     left_hidden = (experiment == constants.EXP_7) or (experiment == constants.EXP_11)
     right_hidden = (experiment == constants.EXP_8) or (experiment == constants.EXP_12)
 
-    noise_value = 0 if experiment < constants.EXP_9 else 1
+    noise_value = 0 if experiment < constants.EXP_9 else 255
 
     mid_row = int(img_rows/2)
     mid_col = int(img_columns/2)
