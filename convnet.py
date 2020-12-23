@@ -152,7 +152,7 @@ def train_networks(training_percentage, filename, experiment):
     atd = total - int(total*training_percentage)
 
     n = 0
-    stats = []
+    histories = []
     for i in range(0, total, step):
         j = (i + atd) % total
 
@@ -188,11 +188,11 @@ def train_networks(training_percentage, filename, experiment):
                     {'classification': testing_labels, 'autoencoder': testing_data}),
                 verbose=2)
 
-        stats.append(history)
+        histories.append(history)
         model.save(constants.model_filename(filename, n))
         n += 1
 
-    return stats
+    return histories
 
 
 def store_images(original, produced, directory, stage, idx, label):
@@ -233,6 +233,7 @@ def obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
     tedata = step
 
     n = 0
+    histories = []
     for i in range(0, total, step):
         j = (i + tedata) % total
 
@@ -258,6 +259,9 @@ def obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
 
         # Drop the autoencoder and the last layers of the full connected neural network part.
         classifier = Model(model.input, model.output[0])
+        no_hot = to_categorical(testing_labels)
+        history = classifier.evaluate(testing_data, no_hot, batch_size=100, return_dict=True)
+        histories.append(history)
         model = Model(classifier.input, classifier.layers[-4].output)
         model.summary()
 
@@ -286,6 +290,8 @@ def obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
             np.save(labels_fn, l)
 
         n += 1
+    
+    return histories
 
 
 def remember(experiment):

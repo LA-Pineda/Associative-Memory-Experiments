@@ -756,6 +756,14 @@ def characterize_features(domain, experiment):
     plot_features_graph(domain, means, stdevs, action)
     
     
+def save_history(history, prefix):
+    stats = {}
+    stats['history'] = []
+    for h in history:
+        stats['history'].append(h.history)
+
+    with open(constants.json_filename(prefix), 'w') as outfile:
+        json.dump(stats, outfile)
 
     
 ##############################################################################
@@ -770,14 +778,7 @@ def main(action):
         stats_prefix = constants.stats_model_name
 
         history = convnet.train_networks(training_percentage, model_prefix, action)
-
-        stats = {}
-        stats['history'] = []
-        for h in history:
-            stats['history'].append(h.history)
-
-        with open(constants.json_filename(stats_prefix), 'w') as outfile:
-            json.dump(stats, outfile)
+        save_history(history, stats_prefix)
     elif (action == constants.GET_FEATURES):
         # Generates features for the data sections using the previously generate neural network
         training_percentage = constants.nn_training_percent
@@ -787,8 +788,9 @@ def main(action):
         labels_prefix = constants.labels_name
         data_prefix = constants.data_name
 
-        convnet.obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
+        history = convnet.obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
             training_percentage, am_filling_percentage, action)
+        save_history(history, features_prefix)
     elif action == constants.CHARACTERIZE:
         # The domain size, equal to the size of the output layer of the network.
         characterize_features(constants.domain, action)
@@ -809,8 +811,9 @@ def main(action):
         labels_prefix = constants.labels_name
         data_prefix = constants.data_name
 
-        convnet.obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
+        history = convnet.obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
             training_percentage, am_filling_percentage, action)
+        save_history(features_prefix)
         test_recalling(constants.domain, constants.partial_ideal_memory_size, action)
         convnet.remember(action)
 if __name__== "__main__" :
