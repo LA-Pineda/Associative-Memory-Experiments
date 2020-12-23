@@ -260,7 +260,9 @@ def obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
         # Drop the autoencoder and the last layers of the full connected neural network part.
         classifier = Model(model.input, model.output[0])
         no_hot = to_categorical(testing_labels)
-        history = classifier.evaluate(testing_data, no_hot, batch_size=100, return_dict=True)
+        classifier.compile(optimizer='adam', loss='categorical_crossentropy', metrics='accuracy')
+        history = classifier.evaluate(testing_data, no_hot, batch_size=100, verbose=1, return_dict=True)
+        print(history)
         histories.append(history)
         model = Model(classifier.input, classifier.layers[-4].output)
         model.summary()

@@ -760,7 +760,10 @@ def save_history(history, prefix):
     stats = {}
     stats['history'] = []
     for h in history:
-        stats['history'].append(h.history)
+        if type(h) is dict:
+            stats['history'].append(h)
+        else:
+            stats['history'].append(h.history)
 
     with open(constants.json_filename(prefix), 'w') as outfile:
         json.dump(stats, outfile)
@@ -813,7 +816,7 @@ def main(action):
 
         history = convnet.obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
             training_percentage, am_filling_percentage, action)
-        save_history(features_prefix)
+        save_history(history, features_prefix)
         test_recalling(constants.domain, constants.partial_ideal_memory_size, action)
         convnet.remember(action)
 if __name__== "__main__" :
