@@ -148,10 +148,6 @@ class AssociativeMemory(object):
     def containment(self, r_io):
         return ~r_io | self.relation
 
-    def mismatches(self, r_io):
-        result = ~r_io | self.relation
-        return np.count_nonzero(result == False)
-
 
     # Reduces a relation to a function
     def lreduce(self, vector):
@@ -186,8 +182,14 @@ class AssociativeMemory(object):
         self.validate(vector)
         r_io = self.vector_to_relation(vector)
         r_io = self.containment(r_io)
-
         return np.all(r_io == True)
+
+
+    def mismatches(self, vector):
+        self.validate(vector)
+        r_io = self.vector_to_relation(vector)
+        r_io = self.containment(r_io)
+        return np.count_nonzero(r_io == False)
 
 
     def recall(self, vector):
