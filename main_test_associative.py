@@ -811,8 +811,8 @@ def main(action):
 
         history = convnet.obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
             training_percentage, am_filling_percentage, action)
-        
         save_history(history, features_prefix)
+        characterize_features(constants.domain, action)
         test_recalling(constants.domain, constants.partial_ideal_memory_size, action)
         convnet.remember(action)
 if __name__== "__main__" :
