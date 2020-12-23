@@ -503,11 +503,13 @@ def get_recalls(ams, msize, domain, min, max, trf, trl, tef, tel, idx):
 
     all_recalls = []
     total_recalls = 0
+    mismatches = 0 
     # Recover memories
     for n, features, label in zip(range(len(tef_rounded)), tef_rounded, tel):
         memories = []
         recalls ={}
 
+        mismatches += ams[label].mismatches(features)
         for k in ams:
             recall = ams[k].recall(features)
             recognized = not (ams[k].is_undefined(recall))
@@ -541,7 +543,7 @@ def get_recalls(ams, msize, domain, min, max, trf, trl, tef, tel, idx):
         measures[constants.precision_idx,i] = cms[i][TP] / positives if positives else 1.0
         measures[constants.recall_idx,i] = cms[i][TP] /(cms[i][TP] + cms[i][FN])    
 
-    return all_recalls, measures, entropy, total_recalls
+    return all_recalls, measures, entropy, total_recalls, mismatches
     
 
 def get_means(d):
@@ -610,13 +612,12 @@ def test_recalling_fold(n_memories, mem_size, domain, experiment, fold):
     i = 0
     k = 0
     mismatches = []
-    mis_count = 0
     for j in range(len(steps)):
         k += steps[j]
         features = training_features[i:k]
         labels = training_labels[i:k]
 
-        recalls, measures, entropies, total_recall = get_recalls(ams, mem_size, domain, minimum, maximum, \
+        recalls, measures, entropies, total_recall, mis_count = get_recalls(ams, mem_size, domain, minimum, maximum, \
             features, labels, testing_features, testing_labels, fold)
 
         # A list of tuples (position, label, features)
@@ -636,12 +637,7 @@ def test_recalling_fold(n_memories, mem_size, domain, experiment, fold):
 
         i = k
 
-        mis_acum = 0
-        for midx in ams:
-            mis_acum += ams[midx].mismatch
-
-        mismatches.append(mis_acum - mis_count)
-        mis_count = mis_acum
+        mismatches.append(mis_count)
 
     return fold, stage_recalls, stage_entropies, stage_mprecision, \
         stage_mrecall, np.array(total_recalls), np.array(mismatches)
