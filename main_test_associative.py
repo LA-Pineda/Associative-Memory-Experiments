@@ -609,6 +609,8 @@ def test_recalling_fold(n_memories, mem_size, domain, experiment, fold):
 
     i = 0
     k = 0
+    mismatches = []
+    mis_count = 0
     for j in range(len(steps)):
         k += steps[j]
         features = training_features[i:k]
@@ -634,8 +636,15 @@ def test_recalling_fold(n_memories, mem_size, domain, experiment, fold):
 
         i = k
 
-    print(total_recalls)
-    return  fold, stage_recalls, stage_entropies, stage_mprecision, stage_mrecall, np.array(total_recalls)
+        mis_acum = 0
+        for midx in ams:
+            mis_acum += ams[midx].mismatch
+
+        mismatches.append(mis_acum - mis_count)
+        mis_count = mis_acum
+
+    return fold, stage_recalls, stage_entropies, stage_mprecision, \
+        stage_mrecall, np.array(total_recalls), np.array(mismatches)
 
 
 def test_recalling(domain, mem_size, experiment):
@@ -646,13 +655,14 @@ def test_recalling(domain, mem_size, experiment):
     all_mprecision = {}
     all_mrecall = {}
     total_recalls = np.zeros((constants.training_stages, len(constants.memory_fills)))
+    total_mismatches = np.zeros(len(constants.memory_fills))
 
     xlabels = constants.memory_fills
     list_results = Parallel(n_jobs=constants.n_jobs, verbose=50)(
         delayed(test_recalling_fold)(n_memories, mem_size, domain, experiment, fold) \
             for fold in range(constants.training_stages))
 
-    for fold, stage_recalls, stage_entropies, stage_mprecision, stage_mrecall, total_recall in list_results:
+    for fold, stage_recalls, stage_entropies, stage_mprecision, stage_mrecall, total_recall, mismatches in list_results:
         all_recalls[fold] = stage_recalls
         for msize in stage_entropies:
             all_entropies[msize] = all_entropies[msize] + [stage_entropies[msize]] \
@@ -662,6 +672,7 @@ def test_recalling(domain, mem_size, experiment):
             all_mrecall[msize] = all_mrecall[msize] + [stage_mrecall[msize]] \
                 if msize in all_mrecall.keys() else [stage_mrecall[msize]]
             total_recalls[fold] = total_recall
+            total_mismatches += mismatches
 
     for fold in all_recalls:
         list_tups = all_recalls[fold]
@@ -679,7 +690,7 @@ def test_recalling(domain, mem_size, experiment):
         tags_filename = constants.labels_name + constants.memory_suffix
         tags_filename = constants.data_filename(tags_filename, fold)
         np.save(tags_filename, tags)
-
+    
     main_avrge_entropies = get_means(all_entropies)
     main_stdev_entropies = get_stdev(all_entropies)
     main_avrge_mprecision = get_means(all_mprecision)
@@ -703,6 +714,8 @@ def test_recalling(domain, mem_size, experiment):
     np.savetxt(constants.csv_filename('main_total_recalls',experiment), \
         total_recalls, delimiter=',')
 
+    np.savetxt(constants.csv_filename('total_mismatches',experiment), \
+        total_mismatches, delimiter=',')
 
     plot_pre_graph(main_avrge_mprecision*100, main_avrge_mrecall*100, main_avrge_entropies,\
         main_stdev_mprecision*100, main_stdev_mrecall*100, main_stdev_entropies, 'recall-', \

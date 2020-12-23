@@ -39,6 +39,10 @@ class AssociativeMemory(object):
         # it is m+1 to handle partial functions.
         self.relation = np.zeros((self.m, self.n), dtype=np.bool)
 
+        # Total number of attributes that do not match the content of
+        # memory.
+        self.mismatch = 0
+
     def __str__(self):
         relation = np.zeros((self.m, self.n), dtype=np.unicode)
         relation[:] = 'O'
@@ -146,7 +150,10 @@ class AssociativeMemory(object):
 
 
     def containment(self, r_io):
-        return ~r_io | self.relation
+        result = ~r_io | self.relation
+        self.mismatch += np.count_nonzero(result == False)
+
+        return result
 
 
     # Reduces a relation to a function
