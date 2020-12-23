@@ -726,18 +726,13 @@ def get_all_data(prefix, domain):
 
 def characterize_features(domain, experiment):
     features_prefix = constants.features_name(experiment)
-    ff_filename = features_prefix + constants.filling_suffix
     tf_filename = features_prefix + constants.testing_suffix
 
     labels_prefix = constants.labels_name
-    fl_filename = labels_prefix + constants.filling_suffix
     tl_filename = labels_prefix + constants.testing_suffix
 
-    features = np.concatenate((get_all_data(ff_filename, domain),
-        get_all_data(tf_filename, domain)), axis=0)
-    
-    labels = np.concatenate((get_all_data(fl_filename, 1),
-        get_all_data(tl_filename, 1)), axis=0)
+    features = get_all_data(tf_filename, domain)
+    labels = get_all_data(fl_filename, 1)
 
     d = {}
     for i in constants.all_labels:
@@ -816,6 +811,7 @@ def main(action):
 
         history = convnet.obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
             training_percentage, am_filling_percentage, action)
+        
         save_history(history, features_prefix)
         test_recalling(constants.domain, constants.partial_ideal_memory_size, action)
         convnet.remember(action)
