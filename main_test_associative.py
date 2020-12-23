@@ -713,7 +713,7 @@ def test_recalling(domain, mem_size, experiment):
     np.savetxt(constants.csv_filename('main_total_recalls',experiment), \
         total_recalls, delimiter=',')
 
-    np.savetxt(constants.csv_filename('total_mismatches',experiment), \
+    np.savetxt(constants.csv_filename('main_total_mismatches',experiment), \
         total_mismatches, delimiter=',')
 
     plot_pre_graph(main_avrge_mprecision*100, main_avrge_mrecall*100, main_avrge_entropies,\

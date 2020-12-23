@@ -160,6 +160,7 @@ nn_training_percent = 0.57  # 0.10 + 0.57 = 0.67
 am_filling_percent = 0.33   # 0.67 + 0.33 = 1.0
 
 domain = 64
+tolerance = 3   # 4.6875%
 
 n_jobs = 4
 n_labels = 10
@@ -170,6 +171,7 @@ all_labels = list(range(n_labels))
 precision_idx = 0
 recall_idx = 1
 n_measures = 2
+
 def mean_idx(m):
     return m
 

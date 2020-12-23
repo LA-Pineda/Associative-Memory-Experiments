@@ -19,6 +19,8 @@ import numpy as np
 import random
 import time
 
+import constants
+
 class AssociativeMemoryError(Exception):
     pass
 
@@ -119,27 +121,40 @@ class AssociativeMemory(object):
 
     # Choose a value for feature i.
     def choose(self, i, v):
-        min = v
-        max = v
 
-        for j in range(v, -1, -1):
-            if self.relation[j,i]:
-                min = j
+        if self.is_undefined(v) or not self.relation[v,i]:
+            values = []
+            for j in range(self.m):
+                if self.relation[j,i]:
+                    values.append(j)
+            if len(values) == 0:
+                return self.undefined
             else:
-                break
-
-        for j in range(v, self.m):
-            if self.relation[j,i]:
-                max = j
-            else:
-                break
-
-        if min == max:
-            return v
+                j = random.randrange(len(values))
+                k = values[j]
+                return k
         else:
-            k = round(random.triangular(min, max, v))
-            return k
+            min = v
+            max = v
 
+            for j in range(v, -1, -1):
+                if self.relation[j,i]:
+                    min = j
+                else:
+                    break
+
+            for j in range(v, self.m):
+                if self.relation[j,i]:
+                    max = j
+                else:
+                    break
+
+            if min == max:
+                return v
+            else:
+                k = round(random.triangular(min, max, v))
+                return k
+                 
 
     def abstract(self, r_io) -> None:
         self.relation = self.relation | r_io
@@ -177,12 +192,14 @@ class AssociativeMemory(object):
         self.abstract(r_io)
 
 
-    def recognize(self, vector):
-
+    def recognize(self, vector, hard=False):
         self.validate(vector)
         r_io = self.vector_to_relation(vector)
         r_io = self.containment(r_io)
-        return np.all(r_io == True)
+        if hard:
+            return np.all(r_io == True)
+        else:
+            return np.count_nonzero(r_io == False) < constants.tolerance
 
 
     def mismatches(self, vector):
@@ -192,13 +209,16 @@ class AssociativeMemory(object):
         return np.count_nonzero(r_io == False)
 
 
-    def recall(self, vector):
+    def recall(self, vector, hard=False):
 
         self.validate(vector)
         r_io = self.vector_to_relation(vector)
         buffer = self.containment(r_io)
 
-        if np.all(buffer == True):
+        accept = np.all(buffer == True) \
+            if hard else np.count_nonzero(buffer == False) < constants.tolerance
+
+        if accept:
             # r_io = self.lreduce(r_io)
             r_io = self.lreduce(vector)
         else:
