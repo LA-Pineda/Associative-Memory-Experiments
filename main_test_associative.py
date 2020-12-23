@@ -127,6 +127,10 @@ def plot_behs_graph(no_response, no_correct, no_chosen, correct, action=None):
 
 
 def plot_features_graph(domain, means, stdevs, experiment):
+    """ Draws the characterist shape of features per label.
+
+    The graph is a dots and lines graph with error bars denoting standard deviations.
+    """
     ymin = np.PINF
     ymax = np.NINF
     for i in constants.all_labels:
@@ -575,10 +579,10 @@ def test_recalling_fold(n_memories, mem_size, domain, experiment, fold):
         ams[j] = AssociativeMemory(domain, mem_size)
 
     suffix = constants.filling_suffix
-    training_features_filename = constants.features_name() + suffix        
-    training_features_filename = constants.data_filename(training_features_filename, fold)
-    training_labels_filename = constants.labels_name + suffix        
-    training_labels_filename = constants.data_filename(training_labels_filename, fold)
+    filling_features_filename = constants.features_name() + suffix        
+    filling_features_filename = constants.data_filename(filling_features_filename, fold)
+    filling_labels_filename = constants.labels_name + suffix        
+    filling_labels_filename = constants.data_filename(filling_labels_filename, fold)
 
     suffix = constants.testing_suffix
     testing_features_filename = constants.features_name(experiment) + suffix        
@@ -586,20 +590,20 @@ def test_recalling_fold(n_memories, mem_size, domain, experiment, fold):
     testing_labels_filename = constants.labels_name + suffix        
     testing_labels_filename = constants.data_filename(testing_labels_filename, fold)
 
-    training_features = np.load(training_features_filename)
-    training_labels = np.load(training_labels_filename)
+    filling_features = np.load(filling_features_filename)
+    filling_labels = np.load(filling_labels_filename)
     testing_features = np.load(testing_features_filename)
     testing_labels = np.load(testing_labels_filename)
 
-    training_max = training_features.max()
+    filling_max = filling_features.max()
     testing_max = testing_features.max()
-    training_min = training_features.min()
+    fillin_min = filling_features.min()
     testing_min = testing_features.min()
 
-    maximum = training_max if training_max > testing_max else testing_max
-    minimum = training_min if training_min < testing_min else testing_min
+    maximum = filling_max if filling_max > testing_max else testing_max
+    minimum = fillin_min if fillin_min < testing_min else testing_min
 
-    total = len(training_features)
+    total = len(filling_features)
     percents = np.array(constants.memory_fills)
     steps = np.round(total*percents/100.0).astype(int)
 
@@ -608,14 +612,13 @@ def test_recalling_fold(n_memories, mem_size, domain, experiment, fold):
     stage_mprecision = {}
     stage_mrecall = {}
     total_recalls = []
+    mismatches = []
 
     i = 0
-    k = 0
-    mismatches = []
     for j in range(len(steps)):
-        k += steps[j]
-        features = training_features[i:k]
-        labels = training_labels[i:k]
+        k = steps[j]
+        features = filling_features[i:k]
+        labels = filling_labels[i:k]
 
         recalls, measures, entropies, total_recall, mis_count = get_recalls(ams, mem_size, domain, minimum, maximum, \
             features, labels, testing_features, testing_labels, fold)
@@ -651,7 +654,7 @@ def test_recalling(domain, mem_size, experiment):
     all_mprecision = {}
     all_mrecall = {}
     total_recalls = np.zeros((constants.training_stages, len(constants.memory_fills)))
-    total_mismatches = np.zeros(len(constants.memory_fills))
+    total_mismatches = np.zeros((constants.training_stages, len(constants.memory_fills)))
 
     xlabels = constants.memory_fills
     list_results = Parallel(n_jobs=constants.n_jobs, verbose=50)(
@@ -668,7 +671,7 @@ def test_recalling(domain, mem_size, experiment):
             all_mrecall[msize] = all_mrecall[msize] + [stage_mrecall[msize]] \
                 if msize in all_mrecall.keys() else [stage_mrecall[msize]]
             total_recalls[fold] = total_recall
-            total_mismatches += mismatches
+            total_mismatches[fold] = mismatches
 
     for fold in all_recalls:
         list_tups = all_recalls[fold]
@@ -734,6 +737,8 @@ def get_all_data(prefix, domain):
     return data
 
 def characterize_features(domain, experiment):
+    """ Produces a graph of features averages and standard deviations.
+    """
     features_prefix = constants.features_name(experiment)
     tf_filename = features_prefix + constants.testing_suffix
 
@@ -748,19 +753,27 @@ def characterize_features(domain, experiment):
         d[i] = []
 
     for (i, feats) in zip(labels, features):
+        # Separates features per label.
         d[i].append(feats)
 
     means = {}
     stdevs = {}
     for i in constants.all_labels:
+        # The list of features becomes a matrix
         d[i] = np.array(d[i])
         means[i] = np.mean(d[i], axis=0)
         stdevs[i] = np.std(d[i], axis=0)
 
     plot_features_graph(domain, means, stdevs, experiment)
     
-    
+
 def save_history(history, prefix):
+    """ Saves the stats of neural networks.
+
+    Neural networks stats may come either as a History object, that includes
+    a History.history dictionary with stats, or directly as a dictionary.
+    """
+
     stats = {}
     stats['history'] = []
     for h in history:
@@ -777,9 +790,14 @@ def save_history(history, prefix):
 # Main section
 
 def main(action):
+    """ Distributes work.
+
+    The main function distributes work according to the options chosen in the
+    command line.
+    """
 
     if (action == constants.TRAIN_NN):
-        # Trains a neural network with those sections of data
+        # Trains the neural networks with a section of data.
         training_percentage = constants.nn_training_percent
         model_prefix = constants.model_name
         stats_prefix = constants.stats_model_name
@@ -787,7 +805,8 @@ def main(action):
         history = convnet.train_networks(training_percentage, model_prefix, action)
         save_history(history, stats_prefix)
     elif (action == constants.GET_FEATURES):
-        # Generates features for the data sections using the previously generate neural network
+        # Generates features for the memories using the previously generate
+        # neural networks.
         training_percentage = constants.nn_training_percent
         am_filling_percentage = constants.am_filling_percent
         model_prefix = constants.model_name
@@ -824,8 +843,17 @@ def main(action):
         characterize_features(constants.domain, action)
         test_recalling(constants.domain, constants.partial_ideal_memory_size, action)
         convnet.remember(action)
-if __name__== "__main__" :
 
+
+
+if __name__== "__main__" :
+    """ Argument parsing.
+    
+    Basically, there is a parameter for choosing language (-l), one
+    to train and save the neural networks (-n), one to create and save the features
+    for all data (-f), one to characterize the initial features (-c), and one to run
+    the experiments (-e).
+    """
     parser = argparse.ArgumentParser(description='Associative Memory Experimenter.')
     parser.add_argument('-l', nargs='?', dest='lang', choices=['en', 'es'], default='en',
                         help='choose between English (en) or Spanish (es) labels for graphs.')
@@ -836,13 +864,13 @@ if __name__== "__main__" :
                         help='get data features using the separate data neural networks.')
     group.add_argument('-c', action='store_const', const=constants.CHARACTERIZE, dest='action',
                         help='characterize the features from partial data neural networks by class.')
-    group.add_argument('-e', nargs='?', dest='n', type=int, 
+    group.add_argument('-e', nargs='?', dest='nexp', type=int, 
                         help='run the experiment with that number, using separate data neural networks.')
 
     args = parser.parse_args()
     action = args.action
     lang = args.lang
-    n = args.n
+    nexp = args.nexp
     
     if lang == 'es':
         es = gettext.translation('ame', localedir='locale', languages=['es'])
@@ -850,13 +878,14 @@ if __name__== "__main__" :
  
     if action is None:
         # An experiment was chosen
-        if (n < constants.MIN_EXPERIMENT) or (n > constants.MAX_EXPERIMENT):
-            print_error("There are only {1} experiments available, numbered consecutively from from {0}."
+        if (nexp < constants.MIN_EXPERIMENT) or (nexp > constants.MAX_EXPERIMENT):
+            print_error("There are only {1} experiments available, numbered consecutively from {0}."
                 .format(constants.MIN_EXPERIMENT, constants.MAX_EXPERIMENT))
             exit(1)
         else:
-            main(n)
+            main(nexp)
     else:
+        # Other action was chosen
         main(action)
 
     

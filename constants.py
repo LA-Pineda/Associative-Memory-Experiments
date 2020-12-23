@@ -152,9 +152,10 @@ filling_suffix = '-filling'
 testing_suffix = '-testing'
 memory_suffix = '-memories'
 
-training_stages = 10        # 0.10 of data.
+training_stages = 10 
 model_epochs = 10
 
+am_testing_percent = (100 / training_stages) / 100
 nn_training_percent = 0.57  # 0.10 + 0.57 = 0.67
 am_filling_percent = 0.33   # 0.67 + 0.33 = 1.0
 
