@@ -732,7 +732,7 @@ def characterize_features(domain, experiment):
     tl_filename = labels_prefix + constants.testing_suffix
 
     features = get_all_data(tf_filename, domain)
-    labels = get_all_data(fl_filename, 1)
+    labels = get_all_data(tl_filename, 1)
 
     d = {}
     for i in constants.all_labels:
@@ -748,7 +748,7 @@ def characterize_features(domain, experiment):
         means[i] = np.mean(d[i], axis=0)
         stdevs[i] = np.std(d[i], axis=0)
 
-    plot_features_graph(domain, means, stdevs, action)
+    plot_features_graph(domain, means, stdevs, experiment)
     
     
 def save_history(history, prefix):
