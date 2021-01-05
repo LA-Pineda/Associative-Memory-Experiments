@@ -37,8 +37,8 @@ def print_error(*s):
 
 
 def plot_pre_graph (pre_mean, rec_mean, ent_mean, pre_std, rec_std, ent_std, \
-    tag = '', action=None, xlabels = constants.memory_sizes, xtitle = None, \
-        ytitle = None):
+    tag = '', xlabels = constants.memory_sizes, xtitle = None, \
+        ytitle = None, action=None, occlusion = None):
 
     cmap = mpl.colors.LinearSegmentedColormap.from_list('mycolors',['cyan','purple'])
     Z = [[0,0],[0,0]]
@@ -72,7 +72,9 @@ def plot_pre_graph (pre_mean, rec_mean, ent_mean, pre_std, rec_std, ent_std, \
     cbar.ax.set_xticklabels(entropy_labels)
     cbar.set_label(_('Entropy'))
 
-    plt.savefig(constants.picture_filename(tag + 'graph_prse_MEAN-{0}'.format(action) + _('-english')), dpi=500)
+    graph_filename = constants.picture_filename(tag + 'graph_prse_MEAN', action, occlusion)
+    graph_filename += _('-english')
+    plt.savefig(graph_filename, dpi=500)
 
 
 def plot_size_graph (response_size, size_stdev, action=None):
@@ -89,7 +91,9 @@ def plot_size_graph (response_size, size_stdev, action=None):
     plt.legend(loc=1)
     plt.grid(True)
 
-    plt.savefig(constants.picture_filename('graph_size_MEAN-{0}'.format(action) + _('-english')), dpi=500)
+    graph_filename = constants.picture_filename('graph_size_MEAN', action)
+    graph_filename += _('-english')
+    plt.savefig(graph_filename, dpi=500)
 
 
 def plot_behs_graph(no_response, no_correct, no_chosen, correct, action=None):
@@ -123,10 +127,13 @@ def plot_behs_graph(no_response, no_correct, no_chosen, correct, action=None):
 
     plt.legend(loc=0)
     plt.grid(axis='y')
-    plt.savefig(constants.picture_filename('graph_behaviours_MEAN-{0}'.format(action) + _('-english')), dpi=500)
+
+    graph_filename = constants.picture_filename('graph_behaviours_MEAN', action)
+    graph_filename += _('-english')
+    plt.savefig(graph_filename, dpi=500)
 
 
-def plot_features_graph(domain, means, stdevs, experiment):
+def plot_features_graph(domain, means, stdevs, experiment, occlusion = None):
     """ Draws the characterist shape of features per label.
 
     The graph is a dots and lines graph with error bars denoting standard deviations.
@@ -157,7 +164,7 @@ def plot_features_graph(domain, means, stdevs, experiment):
         plt.legend(loc='right')
         plt.grid(True)
 
-        filename = constants.features_name(experiment) + '-' + str(i) + _('-english')
+        filename = constants.features_name(experiment, occlusion) + '-' + str(i) + _('-english')
         plt.savefig(constants.picture_filename(filename), dpi=500)
 
 
@@ -581,7 +588,7 @@ def get_stdev(d):
     return stdevs    
     
 
-def test_recalling_fold(n_memories, mem_size, domain, experiment, fold):
+def test_recalling_fold(n_memories, mem_size, domain, fold, experiment, occlusion = None):
     # Create the required associative memories.
     ams = dict.fromkeys(range(n_memories))
     for j in ams:
@@ -594,7 +601,7 @@ def test_recalling_fold(n_memories, mem_size, domain, experiment, fold):
     filling_labels_filename = constants.data_filename(filling_labels_filename, fold)
 
     suffix = constants.testing_suffix
-    testing_features_filename = constants.features_name(experiment) + suffix        
+    testing_features_filename = constants.features_name(experiment, occlusion) + suffix        
     testing_features_filename = constants.data_filename(testing_features_filename, fold)
     testing_labels_filename = constants.labels_name + suffix        
     testing_labels_filename = constants.data_filename(testing_labels_filename, fold)
@@ -658,7 +665,7 @@ def test_recalling_fold(n_memories, mem_size, domain, experiment, fold):
         stage_mrecall, np.array(total_precisions), np.array(total_recalls), np.array(mismatches)
 
 
-def test_recalling(domain, mem_size, experiment):
+def test_recalling(domain, mem_size, experiment, occlusion = None):
     n_memories = constants.n_labels
 
     all_recalls = {}
@@ -671,7 +678,7 @@ def test_recalling(domain, mem_size, experiment):
 
     xlabels = constants.memory_fills
     list_results = Parallel(n_jobs=constants.n_jobs, verbose=50)(
-        delayed(test_recalling_fold)(n_memories, mem_size, domain, experiment, fold) \
+        delayed(test_recalling_fold)(n_memories, mem_size, domain, fold, experiment, occlusion) \
             for fold in range(constants.training_stages))
 
     for fold, stage_recalls, stage_entropies, stage_mprecision, stage_mrecall,\
@@ -698,7 +705,7 @@ def test_recalling(domain, mem_size, experiment):
         
         tags = np.array(tags)
         memories = np.array(memories)
-        memories_filename = constants.memories_name(experiment)
+        memories_filename = constants.memories_name(experiment, occlusion)
         memories_filename = constants.data_filename(memories_filename, fold)
         np.save(memories_filename, memories)
         tags_filename = constants.labels_name + constants.memory_suffix
@@ -712,33 +719,35 @@ def test_recalling(domain, mem_size, experiment):
     main_avrge_mrecall = get_means(all_mrecall)
     main_stdev_mrecall = get_stdev(all_mrecall)
     
-    np.savetxt(constants.csv_filename('main_average_precision',experiment), \
+    np.savetxt(constants.csv_filename('main_average_precision',experiment, occlusion), \
         main_avrge_mprecision, delimiter=',')
-    np.savetxt(constants.csv_filename('main_average_recall',experiment), \
+    np.savetxt(constants.csv_filename('main_average_recall',experiment, occlusion), \
         main_avrge_mrecall, delimiter=',')
-    np.savetxt(constants.csv_filename('main_average_entropy',experiment), \
+    np.savetxt(constants.csv_filename('main_average_entropy',experiment, occlusion), \
         main_avrge_entropies, delimiter=',')
 
-    np.savetxt(constants.csv_filename('main_stdev_precision',experiment), \
+    np.savetxt(constants.csv_filename('main_stdev_precision',experiment, occlusion), \
         main_stdev_mprecision, delimiter=',')
-    np.savetxt(constants.csv_filename('main_stdev_recall',experiment), \
+    np.savetxt(constants.csv_filename('main_stdev_recall',experiment, occlusion), \
         main_stdev_mrecall, delimiter=',')
-    np.savetxt(constants.csv_filename('main_stdev_entropy',experiment), \
+    np.savetxt(constants.csv_filename('main_stdev_entropy',experiment, occlusion), \
         main_stdev_entropies, delimiter=',')
-    np.savetxt(constants.csv_filename('main_total_recalls',experiment), \
+    np.savetxt(constants.csv_filename('main_total_recalls',experiment, occlusion), \
         total_recalls, delimiter=',')
 
-    np.savetxt(constants.csv_filename('main_total_mismatches',experiment), \
+    np.savetxt(constants.csv_filename('main_total_mismatches',experiment, occlusion), \
         total_mismatches, delimiter=',')
 
     plot_pre_graph(main_avrge_mprecision*100, main_avrge_mrecall*100, main_avrge_entropies,\
         main_stdev_mprecision*100, main_stdev_mrecall*100, main_stdev_entropies, 'recall-', \
-            xlabels = xlabels, xtitle = _('Percentage of memory corpus'), action=experiment)
+            xlabels = xlabels, xtitle = _('Percentage of memory corpus'), action = experiment,
+            occlusion = occlusion)
 
     plot_pre_graph(np.average(total_precisions, axis=0)*100, np.average(total_recalls, axis=0)*100, \
         main_avrge_entropies, np.std(total_precisions, axis=0)*100, np.average(total_recalls, axis=0)*100, \
             main_stdev_entropies, 'total_recall-', \
-            xlabels = xlabels, xtitle = _('Percentage of memory corpus'), action=experiment)
+            xlabels = xlabels, xtitle = _('Percentage of memory corpus'), action=experiment,
+            occlusion = occlusion)
 
     print('Test completed')
 
@@ -756,10 +765,10 @@ def get_all_data(prefix, domain):
 
     return data
 
-def characterize_features(domain, experiment):
+def characterize_features(domain, experiment, occlusion = None):
     """ Produces a graph of features averages and standard deviations.
     """
-    features_prefix = constants.features_name(experiment)
+    features_prefix = constants.features_name(experiment, occlusion)
     tf_filename = features_prefix + constants.testing_suffix
 
     labels_prefix = constants.labels_name
@@ -784,7 +793,7 @@ def characterize_features(domain, experiment):
         means[i] = np.mean(d[i], axis=0)
         stdevs[i] = np.std(d[i], axis=0)
 
-    plot_features_graph(domain, means, stdevs, experiment)
+    plot_features_graph(domain, means, stdevs, experiment, occlusion)
     
 
 def save_history(history, prefix):
@@ -809,7 +818,7 @@ def save_history(history, prefix):
 ##############################################################################
 # Main section
 
-def main(action):
+def main(action, occlusion = None):
     """ Distributes work.
 
     The main function distributes work according to the options chosen in the
@@ -853,16 +862,16 @@ def main(action):
         training_percentage = constants.nn_training_percent
         am_filling_percentage = constants.am_filling_percent
         model_prefix = constants.model_name
-        features_prefix = constants.features_name(action)
+        features_prefix = constants.features_name(action, occlusion)
         labels_prefix = constants.labels_name
         data_prefix = constants.data_name
 
         history = convnet.obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
-            training_percentage, am_filling_percentage, action)
+            training_percentage, am_filling_percentage, action, occlusion)
         save_history(history, features_prefix)
-        characterize_features(constants.domain, action)
-        test_recalling(constants.domain, constants.partial_ideal_memory_size, action)
-        convnet.remember(action)
+        characterize_features(constants.domain, action, occlusion)
+        test_recalling(constants.domain, constants.partial_ideal_memory_size, action, occlusion)
+        convnet.remember(action, occlusion)
 
 
 
@@ -877,6 +886,10 @@ if __name__== "__main__" :
     parser = argparse.ArgumentParser(description='Associative Memory Experimenter.')
     parser.add_argument('-l', nargs='?', dest='lang', choices=['en', 'es'], default='en',
                         help='choose between English (en) or Spanish (es) labels for graphs.')
+    parser.add_argument('-o', nargs='?', dest='occlusion', type=float, 
+                        help='run the experiment with a given proportion of occlusion (only experiments 5 to 12).')
+    parser.add_argument('-t', nargs='?', dest='tolerance', type=int,
+                        help='run the experiment with the tolerance given (only experiments 5 to 12).')
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('-n', action='store_const', const=constants.TRAIN_NN, dest='action',
                         help='train the neural networks, separating NN and AM training data (Separate Data NN).')
@@ -888,22 +901,32 @@ if __name__== "__main__" :
                         help='run the experiment with that number, using separate data neural networks.')
 
     args = parser.parse_args()
-    action = args.action
     lang = args.lang
+    occlusion = args.occlusion
+    tolerance = args.tolerance
+    action = args.action
     nexp = args.nexp
+
     
     if lang == 'es':
         es = gettext.translation('ame', localedir='locale', languages=['es'])
         es.install()
- 
+
+    if not (occlusion is None):
+        if (occlusion < 0 or occlusion > 1):
+            print_error("occlusion needs to be a value between 0 and 1")
+            exit(1)
+        elif (nexp is None) or (nexp < constants.EXP_5):
+            print_error("occlusion is only valid for experiments 5 to 12")
+            exit(2)
+
     if action is None:
         # An experiment was chosen
         if (nexp < constants.MIN_EXPERIMENT) or (nexp > constants.MAX_EXPERIMENT):
             print_error("There are only {1} experiments available, numbered consecutively from {0}."
                 .format(constants.MIN_EXPERIMENT, constants.MAX_EXPERIMENT))
             exit(1)
-        else:
-            main(nexp)
+        main(nexp, occlusion)
     else:
         # Other action was chosen
         main(action)

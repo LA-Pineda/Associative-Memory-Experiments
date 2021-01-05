@@ -19,7 +19,12 @@ import os
 run_path = './runs'
 idx_digits = 3
 
-def filename(s, idx = None, extension = ''):
+
+def occlusion_suffix(occlusion):
+    return '' if occlusion is None else '-occ_' + str(int(round(occlusion*100))).zfill(3)
+
+
+def filename(s, idx = None, occlusion = None, extension = ''):
     """ Returns a file name in run_path directory with a given extension and an index
     """
     # Create target directory & all intermediate directories if don't exists
@@ -32,31 +37,33 @@ def filename(s, idx = None, extension = ''):
     if idx is None:
         return run_path + '/' + s + extension
     else:
-        return run_path + '/' + s + '-' + str(idx).zfill(3) + extension
+        return run_path + '/' + s + '-' + str(idx).zfill(3) \
+            + occlusion_suffix(occlusion) + extension
 
 
-def json_filename(s, idx = None):
+
+def json_filename(s, idx = None, occlusion = None):
     """ Returns a file name for csv(i) in run_path directory
     """
-    return filename(s, idx, '.json')
+    return filename(s, idx, occlusion, '.json')
 
 
-def csv_filename(s, idx = None):
+def csv_filename(s, idx = None, occlusion = None):
     """ Returns a file name for csv(i) in run_path directory
     """
-    return filename(s, idx, '.csv')
+    return filename(s, idx, occlusion, '.csv')
 
 
 def data_filename(s, idx = None):
     """ Returns a file name for csv(i) in run_path directory
     """
-    return filename(s, idx, '.npy')
+    return filename(s, idx, extension='.npy')
 
 
-def picture_filename(s, idx = None):
-    """ Returns a file name for csv(i) in run_path directory
+def picture_filename(s, idx = None, occlusion = None):
+    """ Returns a file name for a graph.
     """
-    return filename(s, idx, '.svg')
+    return filename(s, idx, occlusion, '.svg')
 
 
 def model_filename(s, idx = None):
@@ -68,7 +75,6 @@ def image_filename(dir, stage, idx, label, suffix = ''):
 
     try:
         os.makedirs(image_path)
-        print("Directory " , image_path ,  " created ")
     except FileExistsError:
         pass
 
@@ -80,12 +86,12 @@ testing_path = 'test'
 memories_path = 'memories'
 
 
-def testing_directory(i):
-    return testing_path + '-' + str(i).zfill(3)
+def testing_directory(i, occlusion = None):
+    return testing_path + '-' + str(i).zfill(3) + occlusion_suffix(occlusion)
 
 
-def memories_directory(i):
-    return memories_path + '-' + str(i).zfill(3)
+def memories_directory(i, occlusion = None):
+    return memories_path + '-' + str(i).zfill(3) + occlusion_suffix(occlusion)
 
 
 def memory_filename(dir, msize, stage, idx, label):
@@ -124,21 +130,21 @@ experiment_suffix = ['', '', '', '', '',
     '-top_hidden', '-bottom_hidden', '-left_hidden', '-right_hidden',
     '-top_hidwhi', '-bottom_hidwhi', '-left_hidwhi', '-right_hidwhi']
 
-def features_name(i = -1):
+def features_name(i = -1, occlusion = None):
     if i  < 0:
         return features_prefix
     else:
-        return features_prefix + experiment_suffix[i]
+        return features_prefix + experiment_suffix[i] + occlusion_suffix(occlusion)
+
 
 
 memories_prefix = 'memories'
 
-def memories_name(i = -1):
-    if i  < 0:
-        return memories_prefix
-    else:
-        return memories_prefix + experiment_suffix[i]
-
+def memories_name(i = -1, occlusion = None):
+    mem_name = memories_prefix
+    if i  >= 0:
+        mem_name += experiment_suffix[i] + occlusion_suffix(occlusion)
+    return mem_name
 
 # Categories prefixes.
 model_name = 'model'

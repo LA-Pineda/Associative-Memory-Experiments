@@ -29,7 +29,7 @@ img_columns = 28
 
 
 
-def add_noise(data, experiment):
+def add_noise(data, experiment, occlusion = 0):
     # data is assumed to be a numpy array of shape (N, img_rows, img_columns)
 
     if experiment < constants.EXP_5:
@@ -42,8 +42,8 @@ def add_noise(data, experiment):
 
     noise_value = 0 if experiment < constants.EXP_9 else 255
 
-    mid_row = int(img_rows/2)
-    mid_col = int(img_columns/2)
+    mid_row = int(round(img_rows*occlusion))
+    mid_col = int(round(img_columns*occlusion))
     origin = (0, 0)
     end = (0, 0)
 
@@ -71,7 +71,7 @@ def add_noise(data, experiment):
     return data
 
 
-def get_data(experiment, one_hot = False):
+def get_data(experiment, occlusion = None, one_hot = False):
 
    # Load MNIST data, as part of TensorFlow.
     mnist = tf.keras.datasets.mnist
@@ -80,7 +80,7 @@ def get_data(experiment, one_hot = False):
     all_data = np.concatenate((train_images, test_images), axis=0)
     all_labels = np.concatenate((train_labels, test_labels), axis= 0)
 
-    all_data = add_noise(all_data, experiment)
+    all_data = add_noise(all_data, experiment, occlusion)
 
     all_data = all_data.reshape((70000, img_columns, img_rows, 1))
     all_data = all_data.astype('float32') / 255
@@ -220,8 +220,8 @@ def store_memories(labels, produced, features, directory, stage, msize):
 
 
 def obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
-            training_percentage, am_filling_percentage, experiment):
-    (data, labels) = get_data(experiment)
+            training_percentage, am_filling_percentage, experiment, occlusion = None):
+    (data, labels) = get_data(experiment, occlusion)
 
     total = len(data)
     step = int(total/constants.training_stages)
@@ -296,16 +296,16 @@ def obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
     return histories
 
 
-def remember(experiment):
+def remember(experiment, occlusion = None):
 
     for i in range(constants.training_stages):
         testing_data_filename = constants.data_name + constants.testing_suffix
         testing_data_filename = constants.data_filename(testing_data_filename, i)
-        testing_features_filename = constants.features_name(experiment) + constants.testing_suffix
+        testing_features_filename = constants.features_name(experiment, occlusion) + constants.testing_suffix
         testing_features_filename = constants.data_filename(testing_features_filename, i)
         testing_labels_filename = constants.labels_name + constants.testing_suffix
         testing_labels_filename = constants.data_filename(testing_labels_filename, i)
-        memories_filename = constants.memories_name(experiment)
+        memories_filename = constants.memories_name(experiment, occlusion)
         memories_filename = constants.data_filename(memories_filename, i)
         labels_filename = constants.labels_name + constants.memory_suffix
         labels_filename = constants.data_filename(labels_filename, i)
@@ -335,7 +335,7 @@ def remember(experiment):
         n = len(testing_labels)
 
         Parallel(n_jobs=constants.n_jobs, verbose=5)( \
-            delayed(store_images)(original, produced, constants.testing_directory(experiment), i, j, label) \
+            delayed(store_images)(original, produced, constants.testing_directory(experiment, occlusion), i, j, label) \
                 for (j, original, produced, label) in \
                     zip(range(n), testing_data, produced_images, testing_labels))
 
@@ -352,5 +352,5 @@ def remember(experiment):
             produced_images = decoder.predict(mem_data)
 
             Parallel(n_jobs=constants.n_jobs, verbose=5)( \
-                delayed(store_memories)(label, produced, features, constants.memories_directory(experiment), i, j) \
+                delayed(store_memories)(label, produced, features, constants.memories_directory(experiment, occlusion), i, j) \
                     for (produced, features, label) in zip(produced_images, mem_data, mem_labels))
