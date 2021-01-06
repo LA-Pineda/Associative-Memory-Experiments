@@ -47,6 +47,7 @@ def plot_pre_graph (pre_mean, rec_mean, ent_mean, pre_std, rec_std, ent_std, \
     CS3 = plt.contourf(Z, levels, cmap=cmap)
 
     plt.clf()
+    plt.figure(figsize=(6.4,4.8))
 
     main_step = 100.0/len(xlabels)
     plt.errorbar(np.arange(0, 100, main_step), pre_mean, fmt='r-o', yerr=pre_std, label=_('Precision'))
@@ -741,7 +742,7 @@ def test_recalling(domain, mem_size, experiment, occlusion = None, tolerance = 0
             occlusion = occlusion, tolerance = tolerance)
 
     plot_pre_graph(np.average(total_precisions, axis=0)*100, np.average(total_recalls, axis=0)*100, \
-        main_avrge_entropies, np.std(total_precisions, axis=0)*100, np.average(total_recalls, axis=0)*100, \
+        main_avrge_entropies, np.std(total_precisions, axis=0)*100, np.std(total_recalls, axis=0)*100, \
             main_stdev_entropies, 'total_recall-', \
             xlabels = xlabels, xtitle = _('Percentage of memory corpus'), action=experiment,
             occlusion = occlusion, tolerance = tolerance)

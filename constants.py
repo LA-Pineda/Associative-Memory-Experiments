@@ -47,7 +47,7 @@ def filename(s, idx = None, occlusion = None, tolerance = 0, extension = ''):
 
 
 def json_filename(s):
-    """ Returns a file name for csv(i) in run_path directory
+    """ Returns a file name for a JSON file in run_path directory
     """
     return filename(s,  extension = '.json')
 
@@ -133,7 +133,8 @@ features_prefix = 'features'
 experiment_defaul_suffix = ''
 experiment_suffix = ['', '', '', '', '',
     '-top_hidden', '-bottom_hidden', '-left_hidden', '-right_hidden',
-    '-top_hidwhi', '-bottom_hidwhi', '-left_hidwhi', '-right_hidwhi']
+    '-ver_bars', '-hor_bars']
+
 
 def features_name(i = -1, occlusion = None, tolerance = 0):
     if i  < 0:
@@ -141,7 +142,6 @@ def features_name(i = -1, occlusion = None, tolerance = 0):
     else:
         return features_prefix + experiment_suffix[i] \
             + occlusion_suffix(occlusion) + tolerance_suffix(tolerance)
-
 
 
 memories_prefix = 'memories'

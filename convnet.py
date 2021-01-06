@@ -27,36 +27,33 @@ import constants
 img_rows = 28
 img_columns = 28
 
+TOP_SIDE = 0
+BOTTOM_SIDE = 1
+LEFT_SIDE = 2
+RIGHT_SIDE = 3
+VERTICAL_BARS = 4
+HORIZONTAL_BARS = 5
 
+def print_error(*s):
+    print('Error:', *s, file = sys.stderr)
 
-def add_noise(data, experiment, occlusion = 0):
-    # data is assumed to be a numpy array of shape (N, img_rows, img_columns)
-
-    if experiment < constants.EXP_5:
-        return data
-
-    top_hidden = (experiment == constants.EXP_5) or (experiment == constants.EXP_9)
-    bottom_hidden = (experiment == constants.EXP_6) or (experiment == constants.EXP_10)
-    left_hidden = (experiment == constants.EXP_7) or (experiment == constants.EXP_11)
-    right_hidden = (experiment == constants.EXP_8) or (experiment == constants.EXP_12)
-
-    noise_value = 0 if experiment < constants.EXP_9 else 255
-
+def add_side_occlusion(data, side_hidden, occlusion):
+    noise_value = 0
     mid_row = int(round(img_rows*occlusion))
     mid_col = int(round(img_columns*occlusion))
     origin = (0, 0)
     end = (0, 0)
 
-    if top_hidden:
+    if side_hidden == TOP_SIDE:
         origin = (0, 0)
         end = (mid_row, img_columns)
-    elif bottom_hidden:
+    elif side_hidden ==  BOTTOM_SIDE:
         origin = (mid_row, 0)
         end = (img_rows, img_columns)
-    elif left_hidden:
+    elif side_hidden == LEFT_SIDE:
         origin = (0, 0)
         end = (img_rows, mid_col)
-    elif right_hidden:
+    elif side_hidden == RIGHT_SIDE:
         origin = (0, mid_col)
         end = (img_rows, img_columns)
 
@@ -69,6 +66,45 @@ def add_noise(data, experiment, occlusion = 0):
                 image[i,j] = noise_value
 
     return data
+
+
+def add_bars_occlusion(data, bars, occlusion):
+    patterns = [[1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0],
+                [1,1,1,0,0,0,0,1,1,1,0,0,0,0,1,1,1,0,0,0,0,1,1,1,0,0,0,0],
+                [1,1,1,1,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,1,1,1,1],
+                [1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1]]
+    n = round(occlusion/0.05)
+
+    if n >= len(patterns):
+        print_error("For this experiment, occlusion must be at most 15%")
+        return data
+    
+    pattern = patterns[n]
+
+    if bars == VERTICAL_BARS:
+        for image in data:
+            for j in range(img_columns):
+                image[:,j] *= pattern[j]     
+    else:
+        for image in data:
+            for i in range(img_rows):
+                image[i,:] *= pattern[i]
+
+    return data
+
+
+def add_noise(data, experiment, occlusion = 0):
+    # data is assumed to be a numpy array of shape (N, img_rows, img_columns)
+
+    if experiment < constants.EXP_5:
+        return data
+    elif experiment < constants.EXP_9:
+        sides = {constants.EXP_5: TOP_SIDE,  constants.EXP_6: BOTTOM_SIDE,
+                 constants.EXP_7: LEFT_SIDE, constants.EXP_8: RIGHT_SIDE }
+        return add_side_occlusion(data, sides[experiment], occlusion)
+    else:
+        bars = {constants.EXP_9: VERTICAL_BARS,  constants.EXP_10: HORIZONTAL_BARS}
+        return add_bars_occlusion(data, bars[experiment], occlusion)
 
 
 def get_data(experiment, occlusion = None, one_hot = False):
