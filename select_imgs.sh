@@ -21,13 +21,13 @@ test_dir="${imag_dir}/test"
 mems_dir="${imag_dir}/memories"
 
 if [ "$#" -ne 2 ]; then
-    echo "Usage: $0 exp_no stage-id.txt"
-    echo "Where exp_no is the experiment number and stage-id.txt is a"
+    echo "Usage: $0 exp_id stage-id.txt"
+    echo "Where exp_no is the experiment identifier and stage-id.txt is a"
     echo "text file (must have .txt extension) with pairs of stage and id"
     exit 1
 fi
 
-exp_no=`printf %03d $1`
+exp_no=$1
 test_dir="${test_dir}-$exp_no"
 mems_dir="${mems_dir}-$exp_no"
 imag_dir="${imag_dir}/$exp_no"
