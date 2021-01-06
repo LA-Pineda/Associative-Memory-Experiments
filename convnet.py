@@ -296,16 +296,16 @@ def obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
     return histories
 
 
-def remember(experiment, occlusion = None):
+def remember(experiment, occlusion = None, tolerance = 0):
 
     for i in range(constants.training_stages):
         testing_data_filename = constants.data_name + constants.testing_suffix
         testing_data_filename = constants.data_filename(testing_data_filename, i)
-        testing_features_filename = constants.features_name(experiment, occlusion) + constants.testing_suffix
+        testing_features_filename = constants.features_name(experiment, occlusion, tolerance) + constants.testing_suffix
         testing_features_filename = constants.data_filename(testing_features_filename, i)
         testing_labels_filename = constants.labels_name + constants.testing_suffix
         testing_labels_filename = constants.data_filename(testing_labels_filename, i)
-        memories_filename = constants.memories_name(experiment, occlusion)
+        memories_filename = constants.memories_name(experiment, occlusion, tolerance)
         memories_filename = constants.data_filename(memories_filename, i)
         labels_filename = constants.labels_name + constants.memory_suffix
         labels_filename = constants.data_filename(labels_filename, i)
@@ -352,5 +352,5 @@ def remember(experiment, occlusion = None):
             produced_images = decoder.predict(mem_data)
 
             Parallel(n_jobs=constants.n_jobs, verbose=5)( \
-                delayed(store_memories)(label, produced, features, constants.memories_directory(experiment, occlusion), i, j) \
+                delayed(store_memories)(label, produced, features, constants.memories_directory(experiment, occlusion, tolerance), i, j) \
                     for (produced, features, label) in zip(produced_images, mem_data, mem_labels))

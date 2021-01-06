@@ -24,7 +24,11 @@ def occlusion_suffix(occlusion):
     return '' if occlusion is None else '-occ_' + str(int(round(occlusion*100))).zfill(3)
 
 
-def filename(s, idx = None, occlusion = None, extension = ''):
+def tolerance_suffix(tolerance):
+    return '' if not tolerance else '-tol_' + str(tolerance).zfill(3)
+
+
+def filename(s, idx = None, occlusion = None, tolerance = 0, extension = ''):
     """ Returns a file name in run_path directory with a given extension and an index
     """
     # Create target directory & all intermediate directories if don't exists
@@ -38,20 +42,20 @@ def filename(s, idx = None, occlusion = None, extension = ''):
         return run_path + '/' + s + extension
     else:
         return run_path + '/' + s + '-' + str(idx).zfill(3) \
-            + occlusion_suffix(occlusion) + extension
+            + occlusion_suffix(occlusion) + + tolerance_suffix(tolerance) + extension
 
 
 
-def json_filename(s, idx = None, occlusion = None):
+def json_filename(s):
     """ Returns a file name for csv(i) in run_path directory
     """
-    return filename(s, idx, occlusion, '.json')
+    return filename(s,  extension = '.json')
 
 
-def csv_filename(s, idx = None, occlusion = None):
+def csv_filename(s, idx = None, occlusion = None, tolerance = 0):
     """ Returns a file name for csv(i) in run_path directory
     """
-    return filename(s, idx, occlusion, '.csv')
+    return filename(s, idx, occlusion, tolerance, '.csv')
 
 
 def data_filename(s, idx = None):
@@ -60,10 +64,10 @@ def data_filename(s, idx = None):
     return filename(s, idx, extension='.npy')
 
 
-def picture_filename(s, idx = None, occlusion = None):
+def picture_filename(s, idx = None, occlusion = None, tolerance = 0):
     """ Returns a file name for a graph.
     """
-    return filename(s, idx, occlusion, '.svg')
+    return filename(s, idx, occlusion, tolerance, '.svg')
 
 
 def model_filename(s, idx = None):
@@ -90,8 +94,9 @@ def testing_directory(i, occlusion = None):
     return testing_path + '-' + str(i).zfill(3) + occlusion_suffix(occlusion)
 
 
-def memories_directory(i, occlusion = None):
-    return memories_path + '-' + str(i).zfill(3) + occlusion_suffix(occlusion)
+def memories_directory(i, occlusion = Non, tolerance = 0):
+    return memories_path + '-' + str(i).zfill(3) \
+        + occlusion_suffix(occlusion) + tolerance_suffix(tolerance)
 
 
 def memory_filename(dir, msize, stage, idx, label):
@@ -130,11 +135,12 @@ experiment_suffix = ['', '', '', '', '',
     '-top_hidden', '-bottom_hidden', '-left_hidden', '-right_hidden',
     '-top_hidwhi', '-bottom_hidwhi', '-left_hidwhi', '-right_hidwhi']
 
-def features_name(i = -1, occlusion = None):
+def features_name(i = -1, occlusion = None, tolerance = 0):
     if i  < 0:
         return features_prefix
     else:
-        return features_prefix + experiment_suffix[i] + occlusion_suffix(occlusion)
+        return features_prefix + experiment_suffix[i] \
+            + occlusion_suffix(occlusion) + tolerance_suffix(tolerance)
 
 
 
@@ -166,7 +172,6 @@ nn_training_percent = 0.57  # 0.10 + 0.57 = 0.67
 am_filling_percent = 0.33   # 0.67 + 0.33 = 1.0
 
 domain = 64
-tolerance = 2   # 4.6875%
 
 n_jobs = 4
 n_labels = 10

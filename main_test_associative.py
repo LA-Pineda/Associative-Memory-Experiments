@@ -38,7 +38,7 @@ def print_error(*s):
 
 def plot_pre_graph (pre_mean, rec_mean, ent_mean, pre_std, rec_std, ent_std, \
     tag = '', xlabels = constants.memory_sizes, xtitle = None, \
-        ytitle = None, action=None, occlusion = None):
+        ytitle = None, action=None, occlusion = None, tolerance = 0):
 
     cmap = mpl.colors.LinearSegmentedColormap.from_list('mycolors',['cyan','purple'])
     Z = [[0,0],[0,0]]
@@ -72,7 +72,8 @@ def plot_pre_graph (pre_mean, rec_mean, ent_mean, pre_std, rec_std, ent_std, \
     cbar.ax.set_xticklabels(entropy_labels)
     cbar.set_label(_('Entropy'))
 
-    graph_filename = constants.picture_filename(tag + 'graph_prse_MEAN', action, occlusion)
+    s = tag + 'graph_prse_MEAN'
+    graph_filename = constants.picture_filename(s, action, occlusion, tolerance)
     graph_filename += _('-english')
     plt.savefig(graph_filename, dpi=500)
 
@@ -588,11 +589,11 @@ def get_stdev(d):
     return stdevs    
     
 
-def test_recalling_fold(n_memories, mem_size, domain, fold, experiment, occlusion = None):
+def test_recalling_fold(n_memories, mem_size, domain, fold, experiment, occlusion = None, tolerance = 0):
     # Create the required associative memories.
     ams = dict.fromkeys(range(n_memories))
     for j in ams:
-        ams[j] = AssociativeMemory(domain, mem_size)
+        ams[j] = AssociativeMemory(domain, mem_size, tolerance)
 
     suffix = constants.filling_suffix
     filling_features_filename = constants.features_name() + suffix        
@@ -601,7 +602,7 @@ def test_recalling_fold(n_memories, mem_size, domain, fold, experiment, occlusio
     filling_labels_filename = constants.data_filename(filling_labels_filename, fold)
 
     suffix = constants.testing_suffix
-    testing_features_filename = constants.features_name(experiment, occlusion) + suffix        
+    testing_features_filename = constants.features_name(experiment, occlusion, tolerance) + suffix        
     testing_features_filename = constants.data_filename(testing_features_filename, fold)
     testing_labels_filename = constants.labels_name + suffix        
     testing_labels_filename = constants.data_filename(testing_labels_filename, fold)
@@ -665,7 +666,7 @@ def test_recalling_fold(n_memories, mem_size, domain, fold, experiment, occlusio
         stage_mrecall, np.array(total_precisions), np.array(total_recalls), np.array(mismatches)
 
 
-def test_recalling(domain, mem_size, experiment, occlusion = None):
+def test_recalling(domain, mem_size, experiment, occlusion = None, tolerance = 0):
     n_memories = constants.n_labels
 
     all_recalls = {}
@@ -678,7 +679,7 @@ def test_recalling(domain, mem_size, experiment, occlusion = None):
 
     xlabels = constants.memory_fills
     list_results = Parallel(n_jobs=constants.n_jobs, verbose=50)(
-        delayed(test_recalling_fold)(n_memories, mem_size, domain, fold, experiment, occlusion) \
+        delayed(test_recalling_fold)(n_memories, mem_size, domain, fold, experiment, occlusion, tolerance) \
             for fold in range(constants.training_stages))
 
     for fold, stage_recalls, stage_entropies, stage_mprecision, stage_mrecall,\
@@ -705,7 +706,7 @@ def test_recalling(domain, mem_size, experiment, occlusion = None):
         
         tags = np.array(tags)
         memories = np.array(memories)
-        memories_filename = constants.memories_name(experiment, occlusion)
+        memories_filename = constants.memories_name(experiment, occlusion, tolerance)
         memories_filename = constants.data_filename(memories_filename, fold)
         np.save(memories_filename, memories)
         tags_filename = constants.labels_name + constants.memory_suffix
@@ -719,35 +720,34 @@ def test_recalling(domain, mem_size, experiment, occlusion = None):
     main_avrge_mrecall = get_means(all_mrecall)
     main_stdev_mrecall = get_stdev(all_mrecall)
     
-    np.savetxt(constants.csv_filename('main_average_precision',experiment, occlusion), \
+    np.savetxt(constants.csv_filename('main_average_precision',experiment, occlusion, tolerance), \
         main_avrge_mprecision, delimiter=',')
-    np.savetxt(constants.csv_filename('main_average_recall',experiment, occlusion), \
+    np.savetxt(constants.csv_filename('main_average_recall',experiment, occlusion, tolerance), \
         main_avrge_mrecall, delimiter=',')
-    np.savetxt(constants.csv_filename('main_average_entropy',experiment, occlusion), \
+    np.savetxt(constants.csv_filename('main_average_entropy',experiment, occlusion, tolerance), \
         main_avrge_entropies, delimiter=',')
 
-    np.savetxt(constants.csv_filename('main_stdev_precision',experiment, occlusion), \
+    np.savetxt(constants.csv_filename('main_stdev_precision',experiment, occlusion, tolerance), \
         main_stdev_mprecision, delimiter=',')
-    np.savetxt(constants.csv_filename('main_stdev_recall',experiment, occlusion), \
+    np.savetxt(constants.csv_filename('main_stdev_recall',experiment, occlusion, tolerance), \
         main_stdev_mrecall, delimiter=',')
-    np.savetxt(constants.csv_filename('main_stdev_entropy',experiment, occlusion), \
+    np.savetxt(constants.csv_filename('main_stdev_entropy',experiment, occlusion, tolerance), \
         main_stdev_entropies, delimiter=',')
-    np.savetxt(constants.csv_filename('main_total_recalls',experiment, occlusion), \
+    np.savetxt(constants.csv_filename('main_total_recalls',experiment, occlusion, tolerance), \
         total_recalls, delimiter=',')
-
-    np.savetxt(constants.csv_filename('main_total_mismatches',experiment, occlusion), \
+    np.savetxt(constants.csv_filename('main_total_mismatches',experiment, occlusion, tolerance), \
         total_mismatches, delimiter=',')
 
     plot_pre_graph(main_avrge_mprecision*100, main_avrge_mrecall*100, main_avrge_entropies,\
         main_stdev_mprecision*100, main_stdev_mrecall*100, main_stdev_entropies, 'recall-', \
             xlabels = xlabels, xtitle = _('Percentage of memory corpus'), action = experiment,
-            occlusion = occlusion)
+            occlusion = occlusion, tolerance = tolerance)
 
     plot_pre_graph(np.average(total_precisions, axis=0)*100, np.average(total_recalls, axis=0)*100, \
         main_avrge_entropies, np.std(total_precisions, axis=0)*100, np.average(total_recalls, axis=0)*100, \
             main_stdev_entropies, 'total_recall-', \
             xlabels = xlabels, xtitle = _('Percentage of memory corpus'), action=experiment,
-            occlusion = occlusion)
+            occlusion = occlusion, tolerance = tolerance)
 
     print('Test completed')
 
@@ -818,7 +818,7 @@ def save_history(history, prefix):
 ##############################################################################
 # Main section
 
-def main(action, occlusion = None):
+def main(action, occlusion = None, tolerance = 0):
     """ Distributes work.
 
     The main function distributes work according to the options chosen in the
@@ -870,8 +870,9 @@ def main(action, occlusion = None):
             training_percentage, am_filling_percentage, action, occlusion)
         save_history(history, features_prefix)
         characterize_features(constants.domain, action, occlusion)
-        test_recalling(constants.domain, constants.partial_ideal_memory_size, action, occlusion)
-        convnet.remember(action, occlusion)
+        test_recalling(constants.domain, constants.partial_ideal_memory_size,
+            action, occlusion, tolerance)
+        convnet.remember(action, occlusion, tolerance)
 
 
 
@@ -920,13 +921,24 @@ if __name__== "__main__" :
             print_error("occlusion is only valid for experiments 5 to 12")
             exit(2)
 
+    if tolerance is None:
+        tolerance = 0
+    else:
+        if (tolerance < 0 or tolerance > constants.domain):
+            print_error("tolerance needs to be a value between 0 and {0}."
+                .format(constants.domain))
+            exit(3)
+        elif (nexp is None) or (nexp < constants.EXP_5):
+            print_error("tolerance is only valid for experiments 5 to 12")
+            exit(2)
+
     if action is None:
         # An experiment was chosen
         if (nexp < constants.MIN_EXPERIMENT) or (nexp > constants.MAX_EXPERIMENT):
             print_error("There are only {1} experiments available, numbered consecutively from {0}."
                 .format(constants.MIN_EXPERIMENT, constants.MAX_EXPERIMENT))
             exit(1)
-        main(nexp, occlusion)
+        main(nexp, occlusion, tolerance)
     else:
         # Other action was chosen
         main(action)

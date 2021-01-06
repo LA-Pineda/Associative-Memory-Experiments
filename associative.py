@@ -26,7 +26,7 @@ class AssociativeMemoryError(Exception):
 
 
 class AssociativeMemory(object):
-    def __init__(self, n: int, m: int):
+    def __init__(self, n: int, m: int, tolerance = 0):
         """
         Parameters
         ----------
@@ -37,6 +37,7 @@ class AssociativeMemory(object):
         """
         self.n = n
         self.m = m
+        self.t = tolerance
 
         # it is m+1 to handle partial functions.
         self.relation = np.zeros((self.m, self.n), dtype=np.bool)
@@ -192,14 +193,11 @@ class AssociativeMemory(object):
         self.abstract(r_io)
 
 
-    def recognize(self, vector, hard=False):
+    def recognize(self, vector):
         self.validate(vector)
         r_io = self.vector_to_relation(vector)
         r_io = self.containment(r_io)
-        if hard:
-            return np.all(r_io == True)
-        else:
-            return np.count_nonzero(r_io == False) < constants.tolerance
+        return np.count_nonzero(r_io == False) <= self.t
 
 
     def mismatches(self, vector):
@@ -209,14 +207,9 @@ class AssociativeMemory(object):
         return np.count_nonzero(r_io == False)
 
 
-    def recall(self, vector, hard=False):
+    def recall(self, vector):
 
-        self.validate(vector)
-        r_io = self.vector_to_relation(vector)
-        buffer = self.containment(r_io)
-
-        accept = np.all(buffer == True) \
-            if hard else np.count_nonzero(buffer == False) < constants.tolerance
+        accept = self.mismatches(vector) <= self.t
 
         if accept:
             # r_io = self.lreduce(r_io)
