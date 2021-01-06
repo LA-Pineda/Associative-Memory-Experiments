@@ -600,7 +600,7 @@ def test_recalling_fold(n_memories, mem_size, domain, fold, experiment, occlusio
     filling_labels_filename = constants.data_filename(filling_labels_filename, fold)
 
     suffix = constants.testing_suffix
-    testing_features_filename = constants.features_name(experiment, occlusion, tolerance) + suffix        
+    testing_features_filename = constants.features_name(experiment, occlusion) + suffix        
     testing_features_filename = constants.data_filename(testing_features_filename, fold)
     testing_labels_filename = constants.labels_name + suffix        
     testing_labels_filename = constants.data_filename(testing_labels_filename, fold)

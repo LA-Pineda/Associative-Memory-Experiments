@@ -337,7 +337,7 @@ def remember(experiment, occlusion = None, tolerance = 0):
     for i in range(constants.training_stages):
         testing_data_filename = constants.data_name + constants.testing_suffix
         testing_data_filename = constants.data_filename(testing_data_filename, i)
-        testing_features_filename = constants.features_name(experiment, occlusion, tolerance) + constants.testing_suffix
+        testing_features_filename = constants.features_name(experiment, occlusion) + constants.testing_suffix
         testing_features_filename = constants.data_filename(testing_features_filename, i)
         testing_labels_filename = constants.labels_name + constants.testing_suffix
         testing_labels_filename = constants.data_filename(testing_labels_filename, i)

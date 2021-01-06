@@ -136,12 +136,12 @@ experiment_suffix = ['', '', '', '', '',
     '-ver_bars', '-hor_bars']
 
 
-def features_name(i = -1, occlusion = None, tolerance = 0):
+def features_name(i = -1, occlusion = None):
     if i  < 0:
         return features_prefix
     else:
         return features_prefix + experiment_suffix[i] \
-            + occlusion_suffix(occlusion) + tolerance_suffix(tolerance)
+            + occlusion_suffix(occlusion)
 
 
 memories_prefix = 'memories'
