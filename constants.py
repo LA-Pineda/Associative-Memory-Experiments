@@ -42,7 +42,7 @@ def filename(s, idx = None, occlusion = None, tolerance = 0, extension = ''):
         return run_path + '/' + s + extension
     else:
         return run_path + '/' + s + '-' + str(idx).zfill(3) \
-            + occlusion_suffix(occlusion) + + tolerance_suffix(tolerance) + extension
+            + occlusion_suffix(occlusion) + tolerance_suffix(tolerance) + extension
 
 
 
@@ -94,7 +94,7 @@ def testing_directory(i, occlusion = None):
     return testing_path + '-' + str(i).zfill(3) + occlusion_suffix(occlusion)
 
 
-def memories_directory(i, occlusion = Non, tolerance = 0):
+def memories_directory(i, occlusion = None, tolerance = 0):
     return memories_path + '-' + str(i).zfill(3) \
         + occlusion_suffix(occlusion) + tolerance_suffix(tolerance)
 
@@ -146,10 +146,11 @@ def features_name(i = -1, occlusion = None, tolerance = 0):
 
 memories_prefix = 'memories'
 
-def memories_name(i = -1, occlusion = None):
+def memories_name(i = -1, occlusion = None, tolerance = 0):
     mem_name = memories_prefix
     if i  >= 0:
-        mem_name += experiment_suffix[i] + occlusion_suffix(occlusion)
+        mem_name += experiment_suffix[i] + occlusion_suffix(occlusion) \
+            + tolerance_suffix(tolerance)
     return mem_name
 
 # Categories prefixes.
