@@ -739,13 +739,13 @@ def test_recalling(domain, mem_size, experiment, occlusion = None, bars_type = N
     plot_pre_graph(main_avrge_mprecision*100, main_avrge_mrecall*100, main_avrge_entropies,\
         main_stdev_mprecision*100, main_stdev_mrecall*100, main_stdev_entropies, 'recall-', \
             xlabels = xlabels, xtitle = _('Percentage of memory corpus'), action = experiment,
-            occlusion = occlusion, bars_type, tolerance = tolerance)
+            occlusion = occlusion, bars_type = bars_type, tolerance = tolerance)
 
     plot_pre_graph(np.average(total_precisions, axis=0)*100, np.average(total_recalls, axis=0)*100, \
         main_avrge_entropies, np.std(total_precisions, axis=0)*100, np.std(total_recalls, axis=0)*100, \
             main_stdev_entropies, 'total_recall-', \
             xlabels = xlabels, xtitle = _('Percentage of memory corpus'), action=experiment,
-            occlusion = occlusion, bars_type, tolerance = tolerance)
+            occlusion = occlusion, bars_type = bars_type, tolerance = tolerance)
 
     print('Test completed')
 
