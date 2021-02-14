@@ -69,18 +69,8 @@ def add_side_occlusion(data, side_hidden, occlusion):
     return data
 
 
-def add_bars_occlusion(data, bars, occlusion):
-    patterns = [[1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0],
-                [1,1,1,0,0,0,0,1,1,1,0,0,0,0,1,1,1,0,0,0,0,1,1,1,0,0,0,0],
-                [1,1,1,1,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,1,1,1,1],
-                [1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1]]
-    n = round(occlusion/0.05)
-
-    if n >= len(patterns):
-        print_error("For this experiment, occlusion must be at most 15%")
-        return data
-    
-    pattern = patterns[n]
+def add_bars_occlusion(data, bars, n):
+    pattern = constants.bar_patterns[n]
 
     if bars == VERTICAL_BARS:
         for image in data:
@@ -94,7 +84,7 @@ def add_bars_occlusion(data, bars, occlusion):
     return data
 
 
-def add_noise(data, experiment, occlusion = 0):
+def add_noise(data, experiment, occlusion = 0, bars_type = None):
     # data is assumed to be a numpy array of shape (N, img_rows, img_columns)
 
     if experiment < constants.EXP_5:
@@ -105,10 +95,10 @@ def add_noise(data, experiment, occlusion = 0):
         return add_side_occlusion(data, sides[experiment], occlusion)
     else:
         bars = {constants.EXP_9: VERTICAL_BARS,  constants.EXP_10: HORIZONTAL_BARS}
-        return add_bars_occlusion(data, bars[experiment], occlusion)
+        return add_bars_occlusion(data, bars[experiment], bars_type)
 
 
-def get_data(experiment, occlusion = None, one_hot = False):
+def get_data(experiment, occlusion = None, bars_type = None, one_hot = False):
 
    # Load MNIST data, as part of TensorFlow.
     mnist = tf.keras.datasets.mnist
@@ -117,7 +107,7 @@ def get_data(experiment, occlusion = None, one_hot = False):
     all_data = np.concatenate((train_images, test_images), axis=0)
     all_labels = np.concatenate((train_labels, test_labels), axis= 0)
 
-    all_data = add_noise(all_data, experiment, occlusion)
+    all_data = add_noise(all_data, experiment, occlusion, bars_type)
 
     all_data = all_data.reshape((70000, img_columns, img_rows, 1))
     all_data = all_data.astype('float32') / 255
@@ -257,8 +247,14 @@ def store_memories(labels, produced, features, directory, stage, msize):
 
 
 def obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
-            training_percentage, am_filling_percentage, experiment, occlusion = None):
-    (data, labels) = get_data(experiment, occlusion)
+            training_percentage, am_filling_percentage, experiment,
+            occlusion = None, bars_type = None):
+    """ Generate features for images.
+    
+    Uses the previously trained neural networks for generating the features corresponding
+    to the images. It may introduce occlusions.
+    """
+    (data, labels) = get_data(experiment, occlusion, bars_type)
 
     total = len(data)
     step = int(total/constants.training_stages)
@@ -333,16 +329,34 @@ def obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
     return histories
 
 
-def remember(experiment, occlusion = None, tolerance = 0):
+def remember(experiment, occlusion = None, bars_type = None, tolerance = 0):
+    """ Creates images from features.
+    
+    Uses the decoder part of the neural networks to (re)create images from features.
+
+    Parameters
+    ----------
+    experiment : TYPE
+        DESCRIPTION.
+    occlusion : TYPE, optional
+        DESCRIPTION. The default is None.
+    tolerance : TYPE, optional
+        DESCRIPTION. The default is 0.
+
+    Returns
+    -------
+    None.
+
+    """
 
     for i in range(constants.training_stages):
         testing_data_filename = constants.data_name + constants.testing_suffix
         testing_data_filename = constants.data_filename(testing_data_filename, i)
-        testing_features_filename = constants.features_name(experiment, occlusion) + constants.testing_suffix
+        testing_features_filename = constants.features_name(experiment, occlusion, bars_type) + constants.testing_suffix
         testing_features_filename = constants.data_filename(testing_features_filename, i)
         testing_labels_filename = constants.labels_name + constants.testing_suffix
         testing_labels_filename = constants.data_filename(testing_labels_filename, i)
-        memories_filename = constants.memories_name(experiment, occlusion, tolerance)
+        memories_filename = constants.memories_name(experiment, occlusion, bars_type, tolerance)
         memories_filename = constants.data_filename(memories_filename, i)
         labels_filename = constants.labels_name + constants.memory_suffix
         labels_filename = constants.data_filename(labels_filename, i)
@@ -372,7 +386,7 @@ def remember(experiment, occlusion = None, tolerance = 0):
         n = len(testing_labels)
 
         Parallel(n_jobs=constants.n_jobs, verbose=5)( \
-            delayed(store_images)(original, produced, constants.testing_directory(experiment, occlusion), i, j, label) \
+            delayed(store_images)(original, produced, constants.testing_directory(experiment, occlusion, bars_type), i, j, label) \
                 for (j, original, produced, label) in \
                     zip(range(n), testing_data, produced_images, testing_labels))
 
@@ -389,5 +403,5 @@ def remember(experiment, occlusion = None, tolerance = 0):
             produced_images = decoder.predict(mem_data)
 
             Parallel(n_jobs=constants.n_jobs, verbose=5)( \
-                delayed(store_memories)(label, produced, features, constants.memories_directory(experiment, occlusion, tolerance), i, j) \
+                delayed(store_memories)(label, produced, features, constants.memories_directory(experiment, occlusion, bars_type, tolerance), i, j) \
                     for (produced, features, label) in zip(produced_images, mem_data, mem_labels))

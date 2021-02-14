@@ -24,11 +24,15 @@ def occlusion_suffix(occlusion):
     return '' if occlusion is None else '-occ_' + str(int(round(occlusion*100))).zfill(3)
 
 
+def bars_type_suffix(bars_type):
+    return '' if bars_type is None else '-bar_' + str(bars_type).zfill(3)
+
+
 def tolerance_suffix(tolerance):
     return '' if not tolerance else '-tol_' + str(tolerance).zfill(3)
 
 
-def filename(s, idx = None, occlusion = None, tolerance = 0, extension = ''):
+def filename(s, idx = None, occlusion = None, bars_type = None, tolerance = 0, extension = ''):
     """ Returns a file name in run_path directory with a given extension and an index
     """
     # Create target directory & all intermediate directories if don't exists
@@ -42,7 +46,8 @@ def filename(s, idx = None, occlusion = None, tolerance = 0, extension = ''):
         return run_path + '/' + s + extension
     else:
         return run_path + '/' + s + '-' + str(idx).zfill(3) \
-            + occlusion_suffix(occlusion) + tolerance_suffix(tolerance) + extension
+            + occlusion_suffix(occlusion) \
+            + bars_type_suffix(bars_type) + tolerance_suffix(tolerance) + extension
 
 
 
@@ -52,10 +57,10 @@ def json_filename(s):
     return filename(s,  extension = '.json')
 
 
-def csv_filename(s, idx = None, occlusion = None, tolerance = 0):
+def csv_filename(s, idx = None, occlusion = None, bars_type = None, tolerance = 0):
     """ Returns a file name for csv(i) in run_path directory
     """
-    return filename(s, idx, occlusion, tolerance, '.csv')
+    return filename(s, idx, occlusion, bars_type, tolerance, '.csv')
 
 
 def data_filename(s, idx = None):
@@ -64,10 +69,10 @@ def data_filename(s, idx = None):
     return filename(s, idx, extension='.npy')
 
 
-def picture_filename(s, idx = None, occlusion = None, tolerance = 0):
+def picture_filename(s, idx = None, occlusion = None, bars_type = None, tolerance = 0):
     """ Returns a file name for a graph.
     """
-    return filename(s, idx, occlusion, tolerance, '.svg')
+    return filename(s, idx, occlusion, bars_type, tolerance, '.svg')
 
 
 def model_filename(s, idx = None):
@@ -90,13 +95,15 @@ testing_path = 'test'
 memories_path = 'memories'
 
 
-def testing_directory(i, occlusion = None):
-    return testing_path + '-' + str(i).zfill(3) + occlusion_suffix(occlusion)
+def testing_directory(i, occlusion = None, bars_type = None):
+    return testing_path + '-' + str(i).zfill(3) \
+        + occlusion_suffix(occlusion) + bars_type_suffix(bars_type)
 
 
-def memories_directory(i, occlusion = None, tolerance = 0):
+def memories_directory(i, occlusion = None, bars_type = None, tolerance = 0):
     return memories_path + '-' + str(i).zfill(3) \
-        + occlusion_suffix(occlusion) + tolerance_suffix(tolerance)
+        + occlusion_suffix(occlusion) \
+        + bars_type_suffix(bars_type) + tolerance_suffix(tolerance)
 
 
 def memory_filename(dir, msize, stage, idx, label):
@@ -136,21 +143,21 @@ experiment_suffix = ['', '', '', '', '',
     '-ver_bars', '-hor_bars']
 
 
-def features_name(i = -1, occlusion = None):
+def features_name(i = -1, occlusion = None, bars_type = None):
     if i  < 0:
         return features_prefix
     else:
         return features_prefix + experiment_suffix[i] \
-            + occlusion_suffix(occlusion)
+            + occlusion_suffix(occlusion) + bars_type_suffix(bars_type)
 
 
 memories_prefix = 'memories'
 
-def memories_name(i = -1, occlusion = None, tolerance = 0):
+def memories_name(i = -1, occlusion = None, bars_type = None, tolerance = 0):
     mem_name = memories_prefix
     if i  >= 0:
         mem_name += experiment_suffix[i] + occlusion_suffix(occlusion) \
-            + tolerance_suffix(tolerance)
+            + bars_type_suffix(bars_type) + tolerance_suffix(tolerance)
     return mem_name
 
 # Categories prefixes.
@@ -184,6 +191,7 @@ precision_idx = 0
 recall_idx = 1
 n_measures = 2
 
+
 def mean_idx(m):
     return m
 
@@ -216,8 +224,13 @@ EXP_7 = 7
 EXP_8 = 8
 EXP_9 = 9
 EXP_10 = 10
-EXP_11 = 11
-EXP_12 = 12
+
 
 MIN_EXPERIMENT = 1
-MAX_EXPERIMENT = 12
+MAX_EXPERIMENT = 10
+
+bar_patterns = [[1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0],
+            [1,1,1,0,0,0,0,1,1,1,0,0,0,0,1,1,1,0,0,0,0,1,1,1,0,0,0,0],
+            [1,1,1,1,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,1,1,1,1],
+            [1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1]]
+N_BARS = len(bar_patterns_patterns)
