@@ -560,7 +560,8 @@ def get_recalls(ams, msize, domain, min, max, trf, trl, tef, tel, idx):
         measures[constants.precision_idx,i] = cms[i][TP] / positives if positives else 1.0
         measures[constants.recall_idx,i] = cms[i][TP] /(cms[i][TP] + cms[i][FN])    
 
-    total_precision = cm[TP] / (cm[TP] + cm[FP])
+    positives = cm[TP] + cm[FP]
+    total_precision = cm[TP] / positives if positives else 1.0
     total_recall = cm[TP] / len(tef_rounded)
     return all_recalls, measures, entropy, total_precision, total_recall, mismatches
     
