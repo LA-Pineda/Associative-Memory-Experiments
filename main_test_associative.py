@@ -304,11 +304,10 @@ def test_memories(domain, experiment):
     labels_x_memory = constants.labels_per_memory[experiment]
     n_memories = int(constants.n_labels/labels_x_memory)
 
-    suffix = constants.filling_suffix
-
     for i in range(constants.training_stages):
         gc.collect()
 
+        suffix = constants.filling_suffix
         training_features_filename = constants.features_name(experiment) + suffix        
         training_features_filename = constants.data_filename(training_features_filename, i)
         training_labels_filename = constants.labels_name + suffix        
