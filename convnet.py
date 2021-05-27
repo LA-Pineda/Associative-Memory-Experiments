@@ -36,7 +36,7 @@ VERTICAL_BARS = 4
 HORIZONTAL_BARS = 5
 
 truly_training_percentage = 0.80
-epochs = 10
+epochs = 30
 batch_size = 100
 
 def print_error(*s):
@@ -214,7 +214,7 @@ def train_networks(training_percentage, filename, experiment):
 
         model = Model(inputs=input_img, outputs=[classified, decoded])
 
-        model.compile(loss=['categorical_crossentropy', 'binary_crossentropy'],
+        model.compile(loss=['categorical_crossentropy', 'mean_squared_error'],
                     optimizer='adam',
                     metrics='accuracy')
 
