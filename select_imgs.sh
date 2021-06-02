@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/bash
 
 # Copyright [2020] Luis Alberto Pineda Cortés, Gibrán Fuentes Pineda,
 # Rafael Morales Gamboa.
@@ -27,7 +27,7 @@ if [ "$#" -ne 2 ]; then
     exit 1
 fi
 
-exp_no=$1
+exp_no=$(printf "%03d" $1)
 test_dir="${test_dir}-$exp_no"
 mems_dir="${mems_dir}-$exp_no"
 imag_dir="${imag_dir}/$exp_no"
