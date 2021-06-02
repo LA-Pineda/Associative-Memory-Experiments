@@ -1,4 +1,4 @@
-#! /usr/bin/bash
+#! /bin/bash
 
 # Copyright [2020] Luis Alberto Pineda Cortés, Gibrán Fuentes Pineda,
 # Rafael Morales Gamboa.
@@ -17,8 +17,8 @@
 
 runs_dir='runs'
 imag_dir="${runs_dir}/images"
-test_dir="${imag_dir}/test"
-mems_dir="${imag_dir}/memories"
+test_dir="${imag_dir}/test-004"
+mems_dir="${imag_dir}/memories-004"
 random_dir=`openssl rand -hex 4`
 random_dir=${imag_dir}/${random_dir}
 
