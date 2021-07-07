@@ -40,21 +40,27 @@ def plot_pre_graph (pre_mean, rec_mean, ent_mean, pre_std, rec_std, ent_std, \
     tag = '', xlabels = constants.memory_sizes, xtitle = None, \
         ytitle = None, action=None, occlusion = None, bars_type = None, tolerance = 0):
 
-    cmap = mpl.colors.LinearSegmentedColormap.from_list('mycolors',['cyan','purple'])
-    Z = [[0,0],[0,0]]
-    step = 0.1
-    levels = np.arange(0.0, 90 + step, step)
-    CS3 = plt.contourf(Z, levels, cmap=cmap)
-
     plt.clf()
     plt.figure(figsize=(6.4,4.8))
 
-    main_step = 100.0/len(xlabels)
-    plt.errorbar(np.arange(0, 100, main_step), pre_mean, fmt='r-o', yerr=pre_std, label=_('Precision'))
-    plt.errorbar(np.arange(0, 100, main_step), rec_mean, fmt='b-s', yerr=rec_std, label=_('Recall'))
-    plt.xlim(0, 90)
-    plt.ylim(0, 102)
-    plt.xticks(np.arange(0, 100, main_step), xlabels)
+    full_length = 100.0
+    step = 0.1
+    main_step = full_length/len(xlabels)
+    x = np.arange(0, full_length, main_step)
+
+    # One main step less because levels go on sticks, not
+    # on intervals.
+    xmax = full_length - main_step + step
+
+    # Gives space to fully show markers in the top.
+    ymax = full_length + 2
+
+    plt.errorbar(x, pre_mean, fmt='r-o', yerr=pre_std, label=_('Precision'))
+    plt.errorbar(x, rec_mean, fmt='b--s', yerr=rec_std, label=_('Recall'))
+
+    plt.xlim(0, xmax)
+    plt.ylim(0, ymax)
+    plt.xticks(x, xlabels)
 
     if xtitle is None:
         xtitle = _('Range Quantization Levels')
@@ -68,35 +74,50 @@ def plot_pre_graph (pre_mean, rec_mean, ent_mean, pre_std, rec_std, ent_std, \
 
     entropy_labels = [str(e) for e in np.around(ent_mean, decimals=1)]
 
+    cmap = mpl.colors.LinearSegmentedColormap.from_list('mycolors',['cyan','purple'])
+    Z = [[0,0],[0,0]]
+    levels = np.arange(0.0, xmax, step)
+    CS3 = plt.contourf(Z, levels, cmap=cmap)
+
     cbar = plt.colorbar(CS3, orientation='horizontal')
-    cbar.set_ticks(np.arange(0, 100, main_step))
+    cbar.set_ticks(x)
     cbar.ax.set_xticklabels(entropy_labels)
     cbar.set_label(_('Entropy'))
 
     s = tag + 'graph_prse_MEAN' + _('-english')
     graph_filename = constants.picture_filename(s, action, occlusion, bars_type, tolerance)
-    plt.savefig(graph_filename, dpi=500)
+    plt.savefig(graph_filename, dpi=600)
 
 
-def plot_size_graph (response_size, size_stdev, action=None):
+def plot_size_graph (response_size, size_stdev, action=None, tolerance=0):
     plt.clf()
 
-    main_step = len(constants.memory_sizes)
-    plt.errorbar(np.arange(0, 100, main_step), response_size, fmt='g-D', yerr=size_stdev, label=_('Average number of responses'))
-    plt.xlim(0, 90)
-    plt.ylim(0, 10)
-    plt.xticks(np.arange(0, 100, 10), constants.memory_sizes)
+    full_length = 100.0
+    step = 0.1
+    main_step = full_length/len(response_size)
+    x = np.arange(0, full_length, main_step)
+
+    # One main step less because levels go on sticks, not
+    # on intervals.
+    xmax = full_length - main_step + step
+    ymax = constants.n_labels
+
+    plt.errorbar(x, response_size, fmt='g-D', yerr=size_stdev, label=_('Average number of responses'))
+    plt.xlim(0, xmax)
+    plt.ylim(0, ymax)
+    plt.xticks(x, constants.memory_sizes)
+    plt.yticks(np.arange(0,ymax+1, 1), range(constants.n_labels+1))
 
     plt.xlabel(_('Range Quantization Levels'))
     plt.ylabel(_('Size'))
     plt.legend(loc=1)
     plt.grid(True)
 
-    graph_filename = constants.picture_filename('graph_size_MEAN' + _('-english'), action)
-    plt.savefig(graph_filename, dpi=500)
+    graph_filename = constants.picture_filename('graph_size_MEAN' + _('-english'), action, tolerance=tolerance)
+    plt.savefig(graph_filename, dpi=600)
 
 
-def plot_behs_graph(no_response, no_correct, no_chosen, correct, action=None):
+def plot_behs_graph(no_response, no_correct, no_chosen, correct, action=None, tolerance=0):
 
     for i in range(len(no_response)):
         total = (no_response[i] + no_correct[i] + no_chosen[i] + correct[i])/100.0
@@ -106,21 +127,29 @@ def plot_behs_graph(no_response, no_correct, no_chosen, correct, action=None):
         correct[i] /= total
 
     plt.clf()
-    main_step = len(constants.memory_sizes)
-    xlocs = np.arange(0, 100, main_step)
+
+    full_length = 100.0
+    step = 0.1
+    main_step = full_length/len(constants.memory_sizes)
+    x = np.arange(0.0, full_length, main_step)
+
+    # One main step less because levels go on sticks, not
+    # on intervals.
+    xmax = full_length - main_step + step
+    ymax = full_length
     width = 5       # the width of the bars: can also be len(x) sequence
 
-    plt.bar(xlocs, correct, width, label=_('Correct response chosen'))
+    plt.bar(x, correct, width, label=_('Correct response chosen'))
     cumm = np.array(correct)
-    plt.bar(xlocs, no_chosen,  width, bottom=cumm, label=_('Correct response not chosen'))
+    plt.bar(x, no_chosen,  width, bottom=cumm, label=_('Correct response not chosen'))
     cumm += np.array(no_chosen)
-    plt.bar(xlocs, no_correct, width, bottom=cumm, label=_('No correct response'))
+    plt.bar(x, no_correct, width, bottom=cumm, label=_('No correct response'))
     cumm += np.array(no_correct)
-    plt.bar(xlocs, no_response, width, bottom=cumm, label=_('No responses'))
+    plt.bar(x, no_response, width, bottom=cumm, label=_('No responses'))
 
-    plt.xlim(-5, 95)
-    plt.ylim(0, 100)
-    plt.xticks(np.arange(0, 100, 10), constants.memory_sizes)
+    plt.xlim(-width, full_length + width)
+    plt.ylim(0.0, full_length)
+    plt.xticks(x, constants.memory_sizes)
 
     plt.xlabel(_('Range Quantization Levels'))
     plt.ylabel(_('Labels'))
@@ -128,8 +157,8 @@ def plot_behs_graph(no_response, no_correct, no_chosen, correct, action=None):
     plt.legend(loc=0)
     plt.grid(axis='y')
 
-    graph_filename = constants.picture_filename('graph_behaviours_MEAN' + _('-english'), action)
-    plt.savefig(graph_filename, dpi=500)
+    graph_filename = constants.picture_filename('graph_behaviours_MEAN' + _('-english'), action, tolerance=tolerance)
+    plt.savefig(graph_filename, dpi=600)
 
 
 def plot_features_graph(domain, means, stdevs, experiment, occlusion = None, bars_type = None):
@@ -140,10 +169,10 @@ def plot_features_graph(domain, means, stdevs, experiment, occlusion = None, bar
     ymin = np.PINF
     ymax = np.NINF
     for i in constants.all_labels:
-        n = (means[i] - stdevs[i]).min()
-        x = (means[i] + stdevs[i]).max()
-        ymin = ymin if ymin < n else n
-        ymax = ymax if ymax > x else x
+        yn = (means[i] - stdevs[i]).min()
+        yx = (means[i] + stdevs[i]).max()
+        ymin = ymin if ymin < yn else yn
+        ymax = ymax if ymax > yx else yx
 
     main_step = 100.0 / domain
     xrange = np.arange(0, 100, main_step)
@@ -167,7 +196,6 @@ def plot_features_graph(domain, means, stdevs, experiment, occlusion = None, bar
         plt.savefig(constants.picture_filename(filename), dpi=500)
 
 
-
 def get_label(memories, entropies = None):
 
     # Random selection
@@ -186,9 +214,11 @@ def get_label(memories, entropies = None):
     return i
 
 
-def get_ams_results(midx, msize, domain, lpm, trf, tef, trl, tel):
-    print('Testing memory size:', msize)
+def msize_features(features, msize, min_value, max_value):
+    return np.round((msize-1)*(features-min_value) / (max_value-min_value)).astype(np.int16)
+    
 
+def get_ams_results(midx, msize, domain, lpm, trf, tef, trl, tel, tolerance=0):
 
     # Round the values
     max_value = trf.max()
@@ -199,15 +229,15 @@ def get_ams_results(midx, msize, domain, lpm, trf, tef, trl, tel):
     other_value = tef.min()
     min_value = min_value if min_value < other_value else other_value
 
-    trf_rounded = np.round((trf-min_value) * (msize - 1) / (max_value-min_value)).astype(np.int16)
-    tef_rounded = np.round((tef-min_value) * (msize - 1) / (max_value-min_value)).astype(np.int16)
+    trf_rounded = msize_features(trf, msize, min_value, max_value)
+    tef_rounded = msize_features(tef, msize, min_value, max_value)
 
     n_labels = constants.n_labels
     nmems = int(n_labels/lpm)
 
     measures = np.zeros((constants.n_measures, nmems), dtype=np.float64)
-    entropy = np.zeros((nmems, ), dtype=np.float64)
-    behaviour = np.zeros((constants.n_behaviours, ))
+    entropy = np.zeros(nmems, dtype=np.float64)
+    behaviour = np.zeros(constants.n_behaviours, dtype=np.float64)
 
     # Confusion matrix for calculating precision and recall per memory.
     cms = np.zeros((nmems, 2, 2))
@@ -218,17 +248,17 @@ def get_ams_results(midx, msize, domain, lpm, trf, tef, trl, tel):
 
     # Create the required associative memories.
     ams = dict.fromkeys(range(nmems))
-    for j in ams:
-        ams[j] = AssociativeMemory(domain, msize)
+    for m in ams:
+        ams[m] = AssociativeMemory(domain, msize, tolerance)
 
     # Registration
     for features, label in zip(trf_rounded, trl):
-        i = int(label/lpm)
-        ams[i].register(features)
+        m = int(label/lpm)
+        ams[m].register(features)
 
     # Calculate entropies
-    for j in ams:
-        entropy[j] = ams[j].entropy
+    for m in ams:
+        entropy[m] = ams[m].entropy
 
     # Recognition
     response_size = 0
@@ -239,6 +269,8 @@ def get_ams_results(midx, msize, domain, lpm, trf, tef, trl, tel):
         memories = []
         for k in ams:
             recognized = ams[k].recognize(features)
+            if recognized:
+                memories.append(k)
 
             # For calculation of per memory precision and recall
             if (k == correct) and recognized:
@@ -249,10 +281,6 @@ def get_ams_results(midx, msize, domain, lpm, trf, tef, trl, tel):
                 cms[k][FP] += 1
             else:
                 cms[k][TN] += 1
-
-            # For calculation of behaviours, including overall precision and recall.
-            if recognized:
-                memories.append(k)
  
         response_size += len(memories)
         if len(memories) == 0:
@@ -275,9 +303,14 @@ def get_ams_results(midx, msize, domain, lpm, trf, tef, trl, tel):
     behaviour[constants.precision_idx] = all_precision
     behaviour[constants.recall_idx] = all_recall
 
-    for i in range(nmems):
-        measures[constants.precision_idx,i] = cms[i][TP] /(cms[i][TP] + cms[i][FP])
-        measures[constants.recall_idx,i] = cms[i][TP] /(cms[i][TP] + cms[i][FN])
+    for m in range(nmems):
+        total_positives = cms[m][TP] + cms[m][FP]
+        if total_positives == 0:
+            print(f'Memory {m} in run {midx}, memory size {msize}, did not respond.')
+            measures[constants.precision_idx,m] = 1
+        else:
+            measures[constants.precision_idx,m] = cms[m][TP] / total_positives
+        measures[constants.recall_idx,m] = cms[m][TP] /(cms[m][TP] + cms[m][FN])
    
     return (midx, measures, entropy, behaviour)
     
