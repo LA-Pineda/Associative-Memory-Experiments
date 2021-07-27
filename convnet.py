@@ -207,10 +207,8 @@ class EarlyStoppingAtLossCrossing(Callback):
     def on_epoch_end(self, epoch, logs=None):
         loss = logs.get('loss')
         val_loss = logs.get('val_loss')
-        accuracy = logs.get('accuracy')
-        val_accuracy = logs.get('val_accuracy')
 
-        if (epoch < self.start) or ((val_loss < self.prev_loss) and (val_loss < loss) and (accuracy < val_accuracy)) :
+        if (epoch < self.start) or ((val_loss < self.prev_loss) and (val_loss < loss)) :
             self.wait = 0
             self.prev_loss = val_loss
             self.best_weights = self.model.get_weights()
@@ -322,6 +320,8 @@ def obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
     Uses the previously trained neural networks for generating the features corresponding
     to the images. It may introduce occlusions.
     """
+    stages = constants.training_stages
+
     (data, labels) = get_data(experiment, occlusion, bars_type)
 
     total = len(data)
@@ -331,11 +331,8 @@ def obtain_features(model_prefix, features_prefix, labels_prefix, data_prefix,
     filling_size = int(total*am_filling_percentage)
     testing_size = total - training_size - filling_size
 
-    # Amount of data used for testing memories
-    tedata = step
-
     histories = []
-    for n in range(0, total, step):
+    for n in range(stages):
         i = int(n*step)
         j = (i+training_size) % total
 
