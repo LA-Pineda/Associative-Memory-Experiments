@@ -161,6 +161,20 @@ def plot_behs_graph(no_response, no_correct, no_chosen, correct, action=None, to
     plt.savefig(graph_filename, dpi=600)
 
 
+def get_formats(n):
+    colors = ['r','b','g','y','m','c','k']
+    lines = ['-','--','-.',':']
+    markers = ['p','*','s','x','d','o']
+
+    formats = []
+    for _ in range(n):
+        color = random.choice(colors)
+        line = random.choice(lines)
+        marker = random.choice(markers)
+        formats.append(color+line+marker)
+    return formats
+
+
 def plot_features_graph(domain, means, stdevs, experiment, occlusion = None, bars_type = None):
     """ Draws the characterist shape of features per label.
 
@@ -176,7 +190,7 @@ def plot_features_graph(domain, means, stdevs, experiment, occlusion = None, bar
 
     main_step = 100.0 / domain
     xrange = np.arange(0, 100, main_step)
-    fmts = ['r-h', 'b-*', 'g-s', 'y-x', 'm-d', 'c-h', 'r-*', 'b--s', 'g--x', 'y--d']
+    fmts = get_formats(constants.n_labels)
 
     for i in constants.all_labels:
         plt.clf()
