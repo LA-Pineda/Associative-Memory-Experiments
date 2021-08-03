@@ -138,16 +138,26 @@ def get_data_in_range(data, i, j):
 def get_encoder(input_img):
 
     # Convolutional Encoder
-    conv_1 = Conv2D(32,kernel_size=3, activation='relu', padding='same',
+    conv = Conv2D(constants.domain//2,kernel_size=3, activation='relu', padding='same',
         input_shape=(img_columns, img_rows, 1))(input_img)
-    pool_1 = MaxPooling2D((2, 2))(conv_1)
-    conv_2 = Conv2D(32,kernel_size=3, activation='relu')(pool_1)
-    pool_2 = MaxPooling2D((2, 2))(conv_2)
-    drop_1 = Dropout(0.4)(pool_2)
-    conv_3 = Conv2D(64, kernel_size=5, activation='relu')(drop_1)
-    pool_3 = MaxPooling2D((2, 2))(conv_3)
-    drop_2 = Dropout(0.4)(pool_3)
-    norm = LayerNormalization()(drop_2)
+    conv = Conv2D(constants.domain//2,kernel_size=3, activation='relu', padding='same')(conv)
+    pool = MaxPooling2D((2, 2))(conv)
+    drop = Dropout(0.4)(pool)
+    conv = Conv2D(constants.domain//2,kernel_size=3, activation='relu', padding='same')(drop)
+    conv = Conv2D(constants.domain//2,kernel_size=3, activation='relu', padding='same')(conv)
+    pool = MaxPooling2D((2, 2))(conv)
+    drop = Dropout(0.4)(pool)
+    conv = Conv2D(constants.domain,kernel_size=3, activation='relu', padding='same')(drop)
+    conv = Conv2D(constants.domain,kernel_size=3, activation='relu', padding='same')(conv)
+    conv = Conv2D(constants.domain,kernel_size=3, activation='relu', padding='same')(conv)
+    pool = MaxPooling2D((2, 2))(conv)
+    drop = Dropout(0.4)(pool)
+    conv = Conv2D(constants.domain,kernel_size=3, activation='relu', padding='same')(drop)
+    conv = Conv2D(constants.domain,kernel_size=3, activation='relu', padding='same')(conv)
+    conv = Conv2D(constants.domain,kernel_size=3, activation='relu', padding='same')(conv)
+    pool = MaxPooling2D((2, 2))(conv)
+    drop = Dropout(0.4)(pool)
+    norm = LayerNormalization()(drop)
 
     # Produces an array of size equal to constants.domain.
     code = Flatten()(norm)
