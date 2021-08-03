@@ -18,7 +18,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras import Model
 from tensorflow.keras.layers import Input, Conv2D, MaxPooling2D, Dropout, Flatten, Dense, \
-    LayerNormalization, Reshape, Conv2DTranspose
+    BatchNormalization, LayerNormalization, Reshape, Conv2DTranspose
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.callbacks import Callback
 from joblib import Parallel, delayed
@@ -140,22 +140,32 @@ def get_encoder(input_img):
     # Convolutional Encoder
     conv = Conv2D(constants.domain//2,kernel_size=3, activation='relu', padding='same',
         input_shape=(img_columns, img_rows, 1))(input_img)
-    conv = Conv2D(constants.domain//2,kernel_size=3, activation='relu', padding='same')(conv)
-    pool = MaxPooling2D((2, 2))(conv)
+    batch = BatchNormalization()(conv)
+    conv = Conv2D(constants.domain//2,kernel_size=3, activation='relu', padding='same')(batch)
+    batch = BatchNormalization()(conv)
+    pool = MaxPooling2D((2, 2))(batch)
     drop = Dropout(0.4)(pool)
     conv = Conv2D(constants.domain//2,kernel_size=3, activation='relu', padding='same')(drop)
-    conv = Conv2D(constants.domain//2,kernel_size=3, activation='relu', padding='same')(conv)
-    pool = MaxPooling2D((2, 2))(conv)
+    batch = BatchNormalization()(conv)
+    conv = Conv2D(constants.domain//2,kernel_size=3, activation='relu', padding='same')(batch)
+    batch = BatchNormalization()(conv)
+    pool = MaxPooling2D((2, 2))(batch)
     drop = Dropout(0.4)(pool)
     conv = Conv2D(constants.domain,kernel_size=3, activation='relu', padding='same')(drop)
-    conv = Conv2D(constants.domain,kernel_size=3, activation='relu', padding='same')(conv)
-    conv = Conv2D(constants.domain,kernel_size=3, activation='relu', padding='same')(conv)
-    pool = MaxPooling2D((2, 2))(conv)
+    batch = BatchNormalization()(conv)
+    conv = Conv2D(constants.domain,kernel_size=3, activation='relu', padding='same')(batch)
+    batch = BatchNormalization()(conv)
+    conv = Conv2D(constants.domain,kernel_size=3, activation='relu', padding='same')(batch)
+    batch = BatchNormalization()(conv)
+    pool = MaxPooling2D((2, 2))(batch)
     drop = Dropout(0.4)(pool)
     conv = Conv2D(constants.domain,kernel_size=3, activation='relu', padding='same')(drop)
-    conv = Conv2D(constants.domain,kernel_size=3, activation='relu', padding='same')(conv)
-    conv = Conv2D(constants.domain,kernel_size=3, activation='relu', padding='same')(conv)
-    pool = MaxPooling2D((2, 2))(conv)
+    batch = BatchNormalization()(conv)
+    conv = Conv2D(constants.domain,kernel_size=3, activation='relu', padding='same')(batch)
+    batch = BatchNormalization()(conv)
+    conv = Conv2D(constants.domain,kernel_size=3, activation='relu', padding='same')(batch)
+    batch = BatchNormalization()(conv)
+    pool = MaxPooling2D((2, 2))(batch)
     drop = Dropout(0.4)(pool)
     norm = LayerNormalization()(drop)
 
