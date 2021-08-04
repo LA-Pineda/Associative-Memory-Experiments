@@ -178,14 +178,20 @@ def get_encoder(input_img):
 def get_decoder(encoded):
     dense = Dense(units=7*7*32, activation='relu', input_shape=(64, ))(encoded)
     reshape = Reshape((7, 7, 32))(dense)
-    trans_1 = Conv2DTranspose(64, kernel_size=3, strides=2,
+    trans = Conv2DTranspose(64, kernel_size=3, strides=1,
         padding='same', activation='relu')(reshape)
-    drop_1 = Dropout(0.4)(trans_1)
-    trans_2 = Conv2DTranspose(32, kernel_size=3, strides=2,
-        padding='same', activation='relu')(drop_1)
-    drop_2 = Dropout(0.4)(trans_2)
+    drop = Dropout(0.4)(trans)
+    trans = Conv2DTranspose(64, kernel_size=3, strides=2,
+        padding='same', activation='relu')(drop)
+    drop = Dropout(0.4)(trans)
+    trans = Conv2DTranspose(32, kernel_size=3, strides=1,
+        padding='same', activation='relu')(drop)
+    drop = Dropout(0.4)(trans)
+    trans = Conv2DTranspose(32, kernel_size=3, strides=2,
+        padding='same', activation='relu')(drop)
+    drop = Dropout(0.4)(trans)
     output_img = Conv2D(1, kernel_size=3, strides=1,
-        activation='sigmoid', padding='same', name='autoencoder')(drop_2)
+        activation='sigmoid', padding='same', name='autoencoder')(drop)
 
     # Produces an image of same size and channels as originals.
     return output_img
